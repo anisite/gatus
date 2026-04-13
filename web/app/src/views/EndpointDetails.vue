@@ -146,10 +146,10 @@
               <CardTitle>Uptime Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div v-for="period in ['30d', '7d', '24h', '1h']" :key="period" class="text-center">
+              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div v-for="period in ['365d', '30d', '7d', '24h', '1h']" :key="period" class="text-center">
                   <p class="text-sm text-muted-foreground mb-2">
-                    {{ period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
+                    {{ period === '365d' ? 'Last 365 days' : period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
                   </p>
                   <img :src="generateUptimeBadgeImageURL(period)" :alt="`${period} uptime`" class="mx-auto" />
                 </div>
