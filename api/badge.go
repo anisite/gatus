@@ -180,6 +180,8 @@ func HealthBadgeShields(c *fiber.Ctx) error {
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
 	var labelWidth, valueWidth, valueWidthAdjustment int
 	switch duration {
+	case "365d":
+		labelWidth = 75
 	case "30d":
 		labelWidth = 70
 	case "7d":
@@ -248,6 +250,8 @@ func getBadgeColorFromUptime(uptime float64) string {
 func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key string, cfg *config.Config) []byte {
 	var labelWidth, valueWidth int
 	switch duration {
+	case "365d":
+		labelWidth = 115
 	case "30d":
 		labelWidth = 110
 	case "7d":
