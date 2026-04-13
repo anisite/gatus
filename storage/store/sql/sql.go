@@ -33,9 +33,9 @@ const (
 	eventsAboveMaximumCleanUpThreshold  = 10 // Maximum number of events above the configured maximum before triggering a cleanup
 	resultsAboveMaximumCleanUpThreshold = 10 // Maximum number of results above the configured maximum before triggering a cleanup
 
-	uptimeTotalEntriesCleanUpThreshold = 750                 // Maximum number of uptime entries before triggering a cleanup
-	uptimeAgeCleanUpThreshold          = 32 * 24 * time.Hour // Maximum uptime age before triggering a cleanup
-	uptimeRetention                    = 30 * 24 * time.Hour // Duration of hourly uptime data to retain
+	uptimeTotalEntriesCleanUpThreshold = 8800                 // Maximum number of uptime entries before triggering a cleanup (365d * 24h + buffer)
+	uptimeAgeCleanUpThreshold          = 367 * 24 * time.Hour // Maximum uptime age before triggering a cleanup
+	uptimeRetention                    = 365 * 24 * time.Hour // Duration of hourly uptime data to retain
 
 	cacheTTL = 10 * time.Minute
 )
