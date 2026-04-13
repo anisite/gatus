@@ -1,0 +1,14 @@
+version: '3.3'  # <--- C'est ici le changement (au lieu de 3.9)
+
+services:
+  gatus:
+    image: twinproduction/gatus:latest
+    container_name: gatus
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/config/config.yaml
+      - ./data:/data
+    environment:
+      - TZ=America/Toronto

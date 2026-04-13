@@ -1,53 +1,168 @@
+# config.yaml
+
+# 1. Configuration de la persistance (pour garder l'historique après reboot)
+storage:
+  type: sqlite
+  path: /data/gatus.db
+  maximum-number-of-results: 20000
+  maximum-number-of-events: 1000
+
+ 
+# 2. Paramètres de l'interface web
+ui:
+  title: "MESS - État des services"
+  header: "Ministère de l'Emploi et de la Solidarité Sociale"
+  dashboard-heading: État des services
+  dashboard-subheading: Surveillance en temps réel de la qualité des services web
+  #favicon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAQAElEQVR4AexdCVwV1Rr/uHAvq4oggqjPJUSJXJIkfYrLU3xCQVqmhloqv+yV1sunr1wwn5U+zez5TCuNUsqKxNRUXApQcSM0TE0QRUJRIGQRVPalc6ih672zL/fOnRl+HGbmO99yvu/7z5k5Z2YOOoiObdaKemOgA+1H1RHQAKDq9ANoANAAoPIIqNx9rQfQAKDyCKjcfa0HUCkACLc1ABCRUOlWA4BKE0+4rQGAiIRKtxoAVJp4wm3VA8DZXgfrnw4m4qG6reoBEDcjBGaO6KO6xBMOqxoAz4f0hqeH+IGbkx4ylkQSMVHVVrUA6NzWGd6b9GfX/3APL1gxIUjxyTd1ULUAODQ/DNycDffFY2FYfwjq7HEfTekHqgTAkXnjILBze7Pc6nR2cGb5BGjvcj8wzBgVRFAdAMb08oERgZ1pU5i/egq4GBxoeZRSqSoAdHF3ge9ff4wxd67OengTXQ4YGRXAoBoAeKJuPe+dKaxTNj9iALw4MoA1v60yqgYA6TFPgD26xnNJ1IaoIRAZ2IWLiM3xqgIAO18YBT07tuWcHHxTuGlmCDhyBA5nQ1YUUDwAnh3UEyagwjfGPu4ucP7Np/iKy0aOqiGKBkCInzfEobOfynm2dH+fdhAfPYItu03xKRYArnp72PHi30RLxmQ0ZRzeV3n3A4oFwO6XQ6FjOxfRAIAV7ZozRnHzA4oEgAcax495kH6yByeUazE42EPu2xO5ismaX5EAOPwa82QP36x4e7hCoK87X3HZySkSAH27SPtAZ80TynlqqDgAnEHP9e3s7CQ908KCukM7R72kNiylXFEAcLDXQW8Ldc/De/tYKkeC7DAJKwoAbo4O4GahMzNI4ssMU+LEqteJpUgOenzcnCzWjEURD1vMlpSGFAWA98YHSRmr+3Qb9Pb3HdvqgaIAEBbc06J58HKy/RtBRQHAotlHxnw93dBf2/7VACAgf86OWg8gIHyaqBwioPUAArJQVlktQFpaUbbaFQWAe1V1bP0WhS+//J4oeqypRFEA2JKSZdFYVjc2WdSeFMYUBYCl352XIkakOm9V2H73jx1TFACwQ5YqMQnpljIlqR1FAaCyuh4qqy1zH1BcWy9pYiylXFEAaGpuhqLSuxaJ3cELNyxiR2ojigIADlbwyr14I2n59nQu1DQ0SmrDUsoVB4CKugbILa6UNH6L95yVVL8Q5VxlFQcAHICVe6VLUMXdWsgsvI3NKKIoEgCfnMqBGxLdC/RakqCIxBNOyAIAeKUuJ3txm7L77DXCR9G2eIRRWlUrmj69zg6w76Ip5KFI3KizaIDOzg7cXQyw6alB0Bwb3VKqNs2EalSI46OvjIWu7ZzBScBLFy/Hp0GDyDN1URuSoKmZhZMkLITfLw31h9oPZ7T4Xbd5FmDfCb8LVk8G77bOFv34xKIAmDawO9xePw3K10+H2WH9SML0O2l4v65wfW0U4p0OqfPDfyfy+PvRkUs8pMhFyu7WQGJ2IXklAzUK+V3+h98bZ4aAgQLYnTzdoOi9qJb4ZL4xnkGrONUWAcCQHl6Qt2oSfP7SaGhjsjATnRuOKFAhAZ2g9qMZsB/1CnS8ZHUrRLwZPH+tlMwELW02OtsL3n0GvkB+t+Xgt8FBBwF/8YQa1FO8i3pKWiMCKyUHwOLQh+Dkkkjo1qEN76YaHOwhDPUK1R88B6N6dGStpwidtckiTdiErf+OtV3MmDo/DPDaAp3c+X+fiE+A+ainzJbw83RJARA79a+wYvKjOB6iFCeDA6QsiYDY6UNZ69v2w1XWvFSMqajrr2F5P9HHsw2UrJsKIQG+VOo40/193aH4f1Np5fhWSgaAN8P7Q/QoadbYiR7RB2JnhLDy+bO0HFZ8dEwJaexAFI6Sfn7lRPCU4PV0rzZOUIV6QEfUG9K1lWudJAAY7u8DS598hGtbOPFHD/OH2OeGMcrgJ/bvJp5j5KNiqK5tgA3HsqmqW+mDunpAIur29SIPZ1sNoB1ngwOcXBAGeESBDkX5lQQACSKsysHGu+iQ3rBhymBG1kOXChh5qBg+PX6ZqqqV7o3O+PRlE1qPpdwZ6OcNYx/0Fc2E6ADY+/wo0RdmoPN2zphAeMi7HR0LJGUVAHpQSMtDVXmcATwOOju4vmYKlbgk9APzxgG2K4ZyUQHggoZtY4O6idEuTjpOxkQy8i/bzu8FjniGGcX5owMpx/WMjRLAEI5GRQLEW0VFBcCjnT0AD9latVtoB88t7JkbSmttT9ZN2nqyylX7fiIjt9KGoLH6KhFHOa2KWexsnTmcBRczi6gAOPhaOLNFiTjGPdSFVnNWIfcneJcYZNahYS6tUQkr27s6Qh8eax+aNkk0ALR10oMB3aWaGrDUsd5BB9nLn6Q0V4fG8WmXiyjrySq2//gLGbmFFokAF/wA+0mpFiGR/4zt2xWEqhQNAN083YS2RbC8Xyd3wECkUhSxMYmqyoz+U14JVDfgQaRZVQth0eMDWrbW/NPeyUGwedEAYK8TTRVvp3Tojjx+FvW1sbq+EeppkmpseHki9fW/I+p+B6PhmDG/NfZDeglfpcT6WRM5cmHoyVtbRz2p1nt1DYALaaUJsaiM+qufA/8aZ8JtncOAjvTDXzatUhwAsNN4aVe8JSs5+eVkZDNa2rUSMxpB6C6Dyx1uC/6/BngrpMgCAJduloP3P7dB+1c+by2+r34BZ3+5xcu3b2mWiJ22OYWXTmMhDzfuS9HgKeWI1Ymt/hG+rt55xlg1p/3rt+5w4idjtioA/rPrR/BCiQ9YthOK79XC7aq61lKIHuUOXLEH2s39DKZvPkzWdkqab4c2lK9aZVdUUcoRFVtp5v4zaUYahLzxdvePeeC3aDu4zImDfVeKWv0jfF24/xwYZn8KI1btMxZjtZ+Wy+8EMVYuGgBuowQaK2ba91+UAPhGq4RBrrKmHral54In6h2u/VrJpLa1fkSfTq37XHfiTlwhFbGzA+js4UpaR0Yc804iTPgwGa4ynKn1Tc2QmvMrGF7YAgcy2L/LmFnCPh5k7cM00QBwvfwu1seqdJz3BVy5xa3xZah38Fu6A1JYvuDh40rdTd9Buugaehs9ASSrx0vQuVLcYJry+yGAJ3Ocd6hHcxXhHyRBEgsfsb2bNDequJ5NEQ0ACMRwgGHevBk9ken1+tdw604Nm7aZ8TQgI6P/fwjYOL4grK+ZPEEo5/n9oD0aZuJC6KHa+i3cjs56bgA31hWKfPyFodfA/DsZ4o15mIpoAMCGoj5NxRvKkou68BwR3tfHAa5BQzpKQ6gisKsn+kv+W8Xzw865g3uRKzSixqZkwdWSO0YUfrvL0f0RnWRcajY0ohOKjodNnagAwNdr/O48lWG/mB1UVZzoNU1N8PVp6mlaQpk7RXfN9HpXI+qKCR3G2zcmBRsfmu1XI1DO3Z5mRudDiEu/CiU0S9BsO53LR62ZjKgAwF/nTtuYbGYEE0p5dvtYlqzM2JIK2B5ZHUEb7c9vpoxKL37eQOgm27614wzUspxpJJM3peGbX1MaPsa9H37HAe8LLaICADdm76UCuEZy/bpxm3n4heW5lA+PZNGyd/Hm/p/CsEKy6WJHHX2o6tA0839TLmJx0cqtUvLZyBA0uhDLCL1XPK2Mf/97M8lm4PlJjZmmPwnJP9M/40ejtj+ZOeyhez0zbg83RzOaMSGrqML4UJT9xAvXzfQUldyFDJpZSjMBBoIkAPipoBy+ZzmUYWgfbfWuc+YBohVgWWlvbx4W/Dkbnfjy7T/QVfOqyzbpSfE9RveYBHTp46WOVMjcU1I27sSxaChzjOM4mLsVgJ2ncijFHqD4KENvR++23sHeTKejnv7R664s/i+emhn7g2D8Dytr6hph9OpEEPMeA5uhjwTmEFBGrUmEo9mFAjQwix6j6Q67dCC/B3AxmCeY2RI1x2X0LIO6ln9Nrz/e+ClH0+JTN6XAKRpf+VqRFACN6LI/cs1+eGt3BuSjaxffRtLJldGMLtq7GkhFXSiGh6TMLIiZEq1IMriHFxxCl9KuC+Jhp0SXO0kBQMTujX1nIZLD2ziEHJvtUTTqoOJrbyB/L6CdEzmdSg8THc9wMvHwqd9w/DKMQ5fSexKuR2QRAPBxHsvkoCdvxLfzVNu8tVGYlbT0e8Cr5Tt8U1knR/rr+dll483kMI3UCCJOGNjdjN/UJj5GrLL7lTUAZBctBTZIA4ACk8rFJQ0AXKKlQF4NADaSVKmaqQFAqsjaiF4NADaSKKmaKWsAnMgugqRz+fDV0UuCSyKL9wdMg5yRUyzYLm773vTcFj9M9cvhWNYAeO7LkxD6/ncQ9fkJwSVmP/dVQrIKywXbxW2P3Hy4xQ85JNy0DbIGgGljhRw/4sP9K5pnhvoLMWkTsqoBwEaabwapMqXT2cGwnl5U1YqgqwIAI/19wKDn9wTwheF9FJFoKidUAYB1k/ivVThtmD8E07xhTBVYsehS61E8ADZOHgz9u3cQFMetz48UJC9nYUUDYEXEw/BSaKDg+Af4ukPuqkngQvKmkGDlVlagSAD0QXf86YsiYPETA0ULb48ObaBi47MwpGdH0JO8MyiaIQsrsmkA4P8ngF/WxMXDxREWh/aFxo9nQdbbE2GQBOv3OKDEn1wcAXWbZsKxeWEQgECBbePSRuSXTMBCPzYNgP4+7i1r65evnw6l66fBisnBoi6jSpeDYYG+kIkuC9g2LqmvP0bHLts6mwbAD/mlcC6PeiUPS0b972sPWtKcaLZsGgA4Cs98fARvrFrwauLFd/l98WzVhiPjNg+ArF8rIGj5LmB6MTPjajFyl9vv0cwCqGd4IfPjlCyYFCs+CLm1lD+3zQMAu56RXwbOL26FtYcuwAfJmS1fJX2Lnv6tS7oIS3acBrwES9QnRzErp7L7/HUw/GMrPI66d6xrC3oqmfzzDfgm7Srg435Lv4HZ6IEVJ6UyY1YEAHBM8RczCxLSYc5XpwB/lTR+UwrMi0+DlQfPA16C5Q7PNQGw7sSsmy26ZqGnkmPWHYKJ6IzHui8Ucl9+FuuTU1EMAJiCymdVkjoRP/Vmap+16lUDANwLMN0nmCbhoERf45jaseaxagCAg/zqZ8fxhnXJLSf/Pp+1AhtgVBUA4s7ksU7JXI5gYa1YZoyqAkBlTR1UsFwhLCW7SGapkqY5qgIAXlRr6Nt7GCP55YkrgOcXGBklYLC0SlUBAAf3Ipo4SkFjebxPVRYIWL+XSqdc6aoDAE7EaDSWLyBZtKqpqRkGxOyAQhbrCWM9SiiqBABOXLd/x9+3YmlDYxMsRJNI5yRY7Anbk2tRLQAa0A0BXrO4sOwe4AmfATHfwJrD9MvOyTWJQtqlWgAQQeu68OuWNfwvcly8mpC39a3qAdCIrvtVdQ22nkfe7Vc9AHhHTiGCGgBkkkhrNUMDgLUiLxO7GgBkkghrNUMDgLUiLxO7GgBkkghrNUMDgLUiLxO7GgBkkghrNUMDgLUiLxO7sV9tMgAAAA1JREFUGgCsnAhrm/8NAAD//5W7j18AAAAGSURBVAMA4ingTNycYeUAAAAASUVORK5CYII="
+  logo: https://avatars.githubusercontent.com/u/51428766
+
+# 3. Liste des services à surveiller
 endpoints:
-  - name: front-end
-    group: core
-    url: "https://twin.sh/health"
-    interval: 5m
+
+  - name: "Formulaires Web"
+    group: "FRW-PROD"
+    url: "https://formulaires.mtess.gouv.qc.ca/fr/DebuterFormulaire/1/3003" # Exemple si tu vises un service sur la même machine
+    interval: 2m
+    client:
+      timeout: 60s
     conditions:
       - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 150"
-
-  - name: back-end
-    group: core
-    url: "https://example.org/"
-    interval: 5m
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+      - "[BODY] == pat(*debuterFormulaire*)"
+    alerts:
+      - type: ntfy
+        enabled: false
+        
+  - name: "Formulaires Web"
+    group: "FRW-IT"
+    url: "https://formulaires.it.mtess.gouv.qc.ca/fr/DebuterFormulaire/1/3003" # Exemple si tu vises un service sur la même machine
+    interval: 2m
+    client:
+      timeout: 60s
     conditions:
       - "[STATUS] == 200"
-      - "[CERTIFICATE_EXPIRATION] > 48h"
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+      - "[BODY] == pat(*debuterFormulaire*)"
+    alerts:
+      - type: ntfy
+        enabled: false
 
-  - name: monitoring
-    group: internal
-    url: "https://example.org/"
-    interval: 5m
+  - name: "Formulaires Web - A"
+    group: "FRW-A"
+    url: "https://formulaires.mtess.gouv.qc.ca/fr/DebuterFormulaire/1/3003" # Exemple si tu vises un service sur la même machine
+    interval: 2m
+    client:
+      timeout: 60s
+    headers:
+      X-NLB2: 172.16.0.170
     conditions:
       - "[STATUS] == 200"
-
-  - name: nas
-    group: internal
-    url: "https://example.org/"
-    interval: 5m
+      - "[RESPONSE_TIME] < 700" # Alerte si le site est lent (> 700ms)
+      - "[BODY] == pat(*debuterFormulaire*)"
+    alerts:
+      - type: ntfy
+        enabled: true
+        
+  - name: "Formulaires Web - B"
+    group: "FRW-B"
+    url: "https://formulaires.mtess.gouv.qc.ca/fr/DebuterFormulaire/1/3003" # Exemple si tu vises un service sur la même machine
+    interval: 2m
+    client:
+      timeout: 60s
+    headers:
+      X-NLB2: 172.16.0.180
     conditions:
       - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 700" # Alerte si le site est lent (> 700ms)
+      - "[BODY] == pat(*debuterFormulaire*)"
+    alerts:
+      - type: ntfy
+        enabled: true
 
-  - name: example-dns-query
-    url: "8.8.8.8" # Address of the DNS server to use
-    interval: 5m
-    dns:
-      query-name: "example.com"
-      query-type: "A"
-    conditions:
-      - "[BODY] == pat(*.*.*.*)"  # Matches any IPv4 address
-      - "[DNS_RCODE] == NOERROR"
 
-  - name: icmp-ping
-    url: "icmp://example.org"
-    interval: 1m
+  - name: "Mon dossier — Aide à l'emploi - Assistance sociale"
+    group: "ECS-PROD"
+    url: "https://mondossier.mtess.gouv.qc.ca/Anonyme/ConfirmationCourriel?codeConfirmation=POZGR4R3LHS3O41DP1ZJ6TRF0J2QKL" # Exemple si tu vises un service sur la même machine
+    interval: 2m
+    client:
+      timeout: 60s
     conditions:
-      - "[CONNECTED] == true"
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+      - "[BODY] == pat(*Échec de confirmation*)"
+    alerts:
+      - type: ntfy
+        enabled: false
+        failure-threshold: 3
+        success-threshold: 2
 
-  - name: check-domain-expiration
-    url: "https://example.org/"
-    interval: 1h
+  - name: "Mon dossier — Aide à l'emploi - Assistance sociale - A"
+    group: "ECS-A"
+    url: "https://mondossier.mtess.gouv.qc.ca/Anonyme/ConfirmationCourriel?codeConfirmation=POZGR4R3LHS3O41DP1ZJ6TRF0J2QKL" # Exemple si tu vises un service sur la même machine
+    interval: 2m
+    client:
+      timeout: 60s
+    headers:
+      X-NLB2: 172.16.0.170
     conditions:
-      - "[DOMAIN_EXPIRATION] > 720h"
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 700" # Alerte si le site est lent (> 700ms)
+      - "[BODY] == pat(*Échec de confirmation*)"
+    alerts:
+      - type: ntfy
+        enabled: true
+        failure-threshold: 3
+        success-threshold: 2
+        
+  - name: "Mon dossier — Aide à l'emploi - Assistance sociale - B"
+    group: "ECS-B"
+    url: "https://mondossier.mtess.gouv.qc.ca/Anonyme/ConfirmationCourriel?codeConfirmation=POZGR4R3LHS3O41DP1ZJ6TRF0J2QKL" # Exemple si tu vises un service sur la même machine
+    interval: 2m
+    client:
+      timeout: 60s
+    headers:
+      X-NLB2: 172.16.0.180
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 700" # Alerte si le site est lent (> 700ms)
+      - "[BODY] == pat(*Échec de confirmation*)"
+    alerts:
+      - type: ntfy
+        enabled: true
+        failure-threshold: 3
+        success-threshold: 2
+        
+  - name: "SAG"
+    group: "SAG-PROD"
+    url: "https://mondossier.mtess.gouv.qc.ca/api/log/rss/Error/5NrMP79TPQ9CRt3Eywbi0dRq5YB9xc0mKBz5RO8D"
+    interval: 2m
+    client:
+      timeout: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY] != pat(*Unable to load public key*)"
+    alerts:
+      - type: ntfy
+        enabled: true
+        failure-threshold: 1
+        success-threshold: 2
+        
+alerting:
+  ntfy:
+    url: "https://ntfy.sh"
+    topic: "FRW-9f20ca4b3c334463befa08f2336b3c91"
+    priority: 5
+    default-alert:
+      enabled: true
+      failure-threshold: 3 # Alerte après 3 échecs consécutifs
+      success-threshold: 2 # Alerte quand ça revient (RESOLVED)
+      send-on-resolved: true
+    overrides:
+      - group: "ECS-A"
+        topic: "ECS-9f20ca4b3c334463befa08f2336b3c91"
+        priority: 4
+      - group: "ECS-B"
+        topic: "ECS-9f20ca4b3c334463befa08f2336b3c91"
+        priority: 4
+
