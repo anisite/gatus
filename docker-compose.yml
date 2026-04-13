@@ -2,9 +2,7 @@ version: '3.3'  # <--- C'est ici le changement (au lieu de 3.9)
 
 services:
   gatus:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
+    build: .
     image: gatus-custom
     container_name: gatus
     restart: unless-stopped
