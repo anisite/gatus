@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls c:/Users/infol/source/gatus/*.go)"
+      "Bash(ls c:/Users/infol/source/gatus/*.go)",
+      "WebFetch(domain:status.infologique.net)",
+      "Bash(grep -n \"DefaultMaximumNumberOfResults\\\\|DefaultMaximumNumber\" /c/Users/infol/source/gatus/storage/*.go)",
+      "Bash(go build:*)"
     ]
   }
 }

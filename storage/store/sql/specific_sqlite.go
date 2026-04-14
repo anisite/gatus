@@ -118,6 +118,12 @@ func (s *Store) createSQLiteSchema() error {
 		return err
 	}
 	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS endpoint_results_endpoint_id_timestamp_idx ON endpoint_results (endpoint_id, timestamp);
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`
 		CREATE INDEX IF NOT EXISTS endpoint_uptimes_endpoint_id_idx ON endpoint_uptimes (endpoint_id);
 	`)
 	if err != nil {

@@ -189,6 +189,30 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	return hourlyAverageResponseTimes, nil
 }
 
+// GetRawResponseTimeByKey returns individual check timestamps (ms) and response times (ms) during a time range
+func (s *Store) GetRawResponseTimeByKey(key string, from, to time.Time) ([]int64, []int, error) {
+	if from.After(to) {
+		return nil, nil, common.ErrInvalidTimeRange
+	}
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.endpointCache.GetValue(key)
+	if endpointStatus == nil {
+		return nil, nil, common.ErrEndpointNotFound
+	}
+	status := endpointStatus.(*endpoint.Status)
+	var timestamps []int64
+	var values []int
+	for _, result := range status.Results {
+		if result.Timestamp.Before(from) || result.Timestamp.After(to) || result.Duration <= 0 {
+			continue
+		}
+		timestamps = append(timestamps, result.Timestamp.UnixMilli())
+		values = append(values, int(result.Duration.Milliseconds()))
+	}
+	return timestamps, values, nil
+}
+
 // InsertEndpointResult adds the observed result for the specified endpoint into the store
 func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Result) error {
 	endpointKey := ep.Key()

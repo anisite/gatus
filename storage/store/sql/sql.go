@@ -32,6 +32,7 @@ const (
 
 	eventsAboveMaximumCleanUpThreshold  = 10 // Maximum number of events above the configured maximum before triggering a cleanup
 	resultsAboveMaximumCleanUpThreshold = 10 // Maximum number of results above the configured maximum before triggering a cleanup
+	resultsRetention                    = 25 * time.Hour // How long to retain raw results for the 24h chart
 
 	uptimeTotalEntriesCleanUpThreshold = 8800                 // Maximum number of uptime entries before triggering a cleanup (365d * 24h + buffer)
 	uptimeAgeCleanUpThreshold          = 367 * 24 * time.Hour // Maximum uptime age before triggering a cleanup
@@ -318,16 +319,9 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 		_ = tx.Rollback() // If we can't insert the result, we'll rollback now since there's no point continuing
 		return err
 	}
-	// Clean up old results
-	numberOfResults, err := s.getNumberOfResultsByEndpointID(tx, endpointID)
-	if err != nil {
-		logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve total number of results for endpoint with key=%s: %s", ep.Key(), err.Error())
-	} else {
-		if numberOfResults > int64(s.maximumNumberOfResults+resultsAboveMaximumCleanUpThreshold) {
-			if err = s.deleteOldEndpointResults(tx, endpointID); err != nil {
-				logr.Errorf("[sql.InsertEndpointResult] Failed to delete old results for endpoint with key=%s: %s", ep.Key(), err.Error())
-			}
-		}
+	// Clean up old results - always run to trim results older than retention period
+	if err = s.deleteOldEndpointResults(tx, endpointID); err != nil {
+		logr.Errorf("[sql.InsertEndpointResult] Failed to delete old results for endpoint with key=%s: %s", ep.Key(), err.Error())
 	}
 	// Finally, we need to insert the uptime data.
 	// Because the uptime data significantly outlives the results, we can't rely on the results for determining the uptime
@@ -1018,24 +1012,78 @@ func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
 	return err
 }
 
-// deleteOldEndpointResults deletes endpoint results that are no longer needed
+// deleteOldEndpointResults deletes endpoint results older than resultsRetention,
+// while always keeping at least maximumNumberOfResults recent results.
 func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 	_, err := tx.Exec(
 		`
 			DELETE FROM endpoint_results
-			WHERE endpoint_id = $1 
+			WHERE endpoint_id = $1
+				AND timestamp < $2
 				AND endpoint_result_id NOT IN (
 					SELECT endpoint_result_id
 					FROM endpoint_results
 					WHERE endpoint_id = $1
 					ORDER BY endpoint_result_id DESC
-					LIMIT $2
+					LIMIT $3
 				)
 		`,
 		endpointID,
+		time.Now().Add(-resultsRetention).UTC(),
 		s.maximumNumberOfResults,
 	)
 	return err
+}
+
+// GetRawResponseTimeByKey returns the individual check timestamps (ms) and response times (ms)
+// within a time range, queried directly from endpoint_results for maximum precision.
+func (s *Store) GetRawResponseTimeByKey(key string, from, to time.Time) ([]int64, []int, error) {
+	if from.After(to) {
+		return nil, nil, common.ErrInvalidTimeRange
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+	endpointID, _, _, err := s.getEndpointIDGroupAndNameByKey(tx, key)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, nil, err
+	}
+	rows, err := tx.Query(
+		`
+			SELECT timestamp, duration
+			FROM endpoint_results
+			WHERE endpoint_id = $1
+				AND duration > 0
+				AND timestamp >= $2
+				AND timestamp <= $3
+			ORDER BY timestamp ASC
+		`,
+		endpointID,
+		from.UTC(),
+		to.UTC(),
+	)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, nil, err
+	}
+	var timestamps []int64
+	var values []int
+	for rows.Next() {
+		var ts time.Time
+		var duration time.Duration
+		if err := rows.Scan(&ts, &duration); err != nil {
+			continue
+		}
+		timestamps = append(timestamps, ts.UnixMilli())
+		values = append(values, int(duration.Milliseconds()))
+	}
+	_ = rows.Close()
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
+	}
+	return timestamps, values, nil
 }
 
 func (s *Store) deleteOldUptimeEntries(tx *sql.Tx, endpointID int64, maxAge time.Time) error {

@@ -41,6 +41,9 @@ type Store interface {
 	// GetHourlyAverageResponseTimeByKey returns a map of hourly (key) average response time in milliseconds (value) during a time range
 	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
+	// GetRawResponseTimeByKey returns individual check timestamps (ms) and response times (ms) during a time range
+	GetRawResponseTimeByKey(key string, from, to time.Time) ([]int64, []int, error)
+
 	// InsertEndpointResult adds the observed result for the specified endpoint into the store
 	InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Result) error
 

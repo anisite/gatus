@@ -136,7 +136,7 @@ func ResponseTimeHistory(c *fiber.Ctx) error {
 	case "7d":
 		from = time.Now().Truncate(time.Hour).Add(-7 * 24 * time.Hour)
 	case "24h":
-		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
+		from = time.Now().Add(-24 * time.Hour)
 	default:
 		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h")
 	}
@@ -144,6 +144,24 @@ func ResponseTimeHistory(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(400).SendString("invalid key encoding")
 	}
+	// For 24h, query raw per-check results for full resolution
+	if duration == "24h" {
+		timestamps, values, err := store.Get().GetRawResponseTimeByKey(endpointKey, from, time.Now())
+		if err != nil {
+			if errors.Is(err, common.ErrEndpointNotFound) {
+				return c.Status(404).SendString(err.Error())
+			}
+			if errors.Is(err, common.ErrInvalidTimeRange) {
+				return c.Status(400).SendString(err.Error())
+			}
+			return c.Status(500).SendString(err.Error())
+		}
+		return c.Status(http.StatusOK).JSON(map[string]interface{}{
+			"timestamps": timestamps,
+			"values":     values,
+		})
+	}
+	// For 7d and 30d, use hourly averages
 	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(endpointKey, from, time.Now())
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
