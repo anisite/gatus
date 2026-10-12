@@ -2,6 +2,8 @@
 
 Guidance for AI coding agents working in this repository.
 
+> Déploiement en production de ce fork (serveur, ports, rebuild, retour arrière) : voir [DEPLOY.md](DEPLOY.md).
+
 ## Commands
 
 - `make install` — Build the `gatus` binary
