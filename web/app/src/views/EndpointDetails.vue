@@ -8,10 +8,10 @@
         </Button>
         
         <div v-if="endpointStatus && endpointStatus.name" class="space-y-6">
-          <div class="flex items-start justify-between">
-            <div>
-              <h1 class="text-4xl font-bold tracking-tight">{{ endpointStatus.name }}</h1>
-              <div class="flex items-center gap-3 text-muted-foreground mt-2">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0 flex-1 basis-[18rem]">
+              <h1 class="text-2xl sm:text-4xl font-bold tracking-tight break-words">{{ endpointStatus.name }}</h1>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground mt-2">
                 <span v-if="endpointStatus.group">{{ $t('Group: {group}', { group: endpointStatus.group }) }}</span>
                 <span v-if="endpointStatus.group && hostname">•</span>
                 <span v-if="hostname">{{ hostname }}</span>

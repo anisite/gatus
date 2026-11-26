@@ -85,3 +85,7 @@ html.utd-theme .utd-pastille.avec-point::before {
 html.utd-theme .utd-pastille.avec-point.jaune::before { background: #eab308; }
 html.utd-theme .utd-pastille.avec-point.rouge::before { background: #ef4444; }
 html.utd-theme .utd-pastille.avec-point.bleu::before { background: #4a98d9; }
+/* Le contenu s'aligne sur le début du logo Québec : même largeur que le conteneur UTD (1200 px) */
+@media (min-width: 1200px) {
+  html.utd-theme .max-w-7xl { max-width: 1200px !important; }
+}
