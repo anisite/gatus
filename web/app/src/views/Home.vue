@@ -191,18 +191,20 @@
         </div>
       </div>
 
-        <!-- Légende : sous la liste des endpoints -->
-        <div v-if="uiTheme === 'utd' && !loading && overallStatus !== 'unknown'" class="flex flex-wrap items-center gap-4 mb-4">
-          <span class="utd-pastille avec-point vert">Opérationnel (moins de 700 ms)</span>
-          <span class="utd-pastille avec-point jaune">Performances dégradées (700 ms à 5 s)</span>
-          <span class="utd-pastille avec-point rouge">Panne (plus de 5 s ou échec)</span>
-        </div>
-        <div v-else-if="!loading && overallStatus !== 'unknown'" class="flex flex-wrap items-center gap-x-5 gap-y-1 mt-6 mb-4 text-sm text-muted-foreground">
-          <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-green-500"></span>Opérationnel</span>
-          <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-yellow-400"></span>Performances dégradées (lenteur, pas de panne)</span>
-          <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-red-500"></span>Panne</span>
-        </div>
-      <!-- Past Announcements Section -->
+        <!-- Légende : section sous la liste des endpoints -->
+        <section v-if="!loading && overallStatus !== 'unknown'" class="legende-section mt-6 mb-4 border rounded-lg bg-card p-4" aria-labelledby="legende-titre">
+          <h2 id="legende-titre" class="text-lg font-semibold mb-3">Légende</h2>
+          <div v-if="uiTheme === 'utd'" class="flex flex-wrap items-center gap-4">
+            <span class="utd-pastille avec-point vert">Opérationnel (moins de 700 ms)</span>
+            <span class="utd-pastille avec-point jaune">Performances dégradées (700 ms à 5 s)</span>
+            <span class="utd-pastille avec-point rouge">Panne (plus de 5 s ou échec)</span>
+          </div>
+          <div v-else class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
+            <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-green-500"></span>Opérationnel</span>
+            <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-yellow-400"></span>Performances dégradées (lenteur, pas de panne)</span>
+            <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-red-500"></span>Panne</span>
+          </div>
+        </section>
       <div v-if="archivedAnnouncements.length > 0" class="mt-12 pb-8">
         <PastAnnouncements :announcements="archivedAnnouncements" />
       </div>
