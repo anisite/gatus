@@ -169,3 +169,30 @@ func TestShallowCopySuiteStatus(t *testing.T) {
 		}
 	})
 }
+
+func TestAddResult_DegradedEvents(t *testing.T) {
+	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
+	status := endpoint.NewStatus(ep.Group, ep.Name)
+	healthy := func() *endpoint.Result {
+		return &endpoint.Result{Success: true, Timestamp: time.Now(), ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: true}}}
+	}
+	degraded := func() *endpoint.Result {
+		return &endpoint.Result{Success: true, Timestamp: time.Now(), ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: true}, {Condition: "[RESPONSE_TIME] < 700", Success: false}}}
+	}
+	unhealthy := func() *endpoint.Result {
+		return &endpoint.Result{Success: false, Timestamp: time.Now(), ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: false}}}
+	}
+	// healthy, healthy (no event), degraded, degraded (no event), healthy, unhealthy, degraded
+	for _, r := range []*endpoint.Result{healthy(), healthy(), degraded(), degraded(), healthy(), unhealthy(), degraded()} {
+		AddResult(status, r, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	}
+	expected := []endpoint.EventType{endpoint.EventHealthy, endpoint.EventDegraded, endpoint.EventHealthy, endpoint.EventUnhealthy, endpoint.EventDegraded}
+	if len(status.Events) != len(expected) {
+		t.Fatalf("expected %d events, got %d", len(expected), len(status.Events))
+	}
+	for i, eventType := range expected {
+		if status.Events[i].Type != eventType {
+			t.Errorf("expected event %d to be %s, got %s", i, eventType, status.Events[i].Type)
+		}
+	}
+}

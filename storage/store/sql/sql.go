@@ -286,17 +286,17 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 			logr.Errorf("[sql.InsertEndpointResult] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
 		}
 	} else {
-		// Get the success value of the previous result
-		var lastResultSuccess bool
-		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
+		// Get the kind of event (healthy, degraded or unhealthy) that the previous result corresponds to
+		var lastResultEventType endpoint.EventType
+		if lastResultEventType, err = s.getLastEndpointResultEventType(tx, endpointID); err != nil {
 			// Silently fail
 			logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		} else {
 			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
-			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
-			// that the endpoint either went from Healthy to Unhealthy or Unhealthy -> Healthy, therefore, we'll add
-			// an event to mark the change in state
-			if lastResultSuccess != result.Success {
+			// If the final outcome (healthy, degraded or unhealthy) of the previous and the new result aren't the same,
+			// it means that the endpoint changed state (e.g. Healthy -> Degraded, Degraded -> Unhealthy,
+			// Unhealthy -> Healthy), therefore, we'll add an event to mark the change in state
+			if lastResultEventType != endpoint.NewEventFromResult(result).Type {
 				event := endpoint.NewEventFromResult(result)
 				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 					// Silently fail
@@ -978,6 +978,38 @@ func (s *Store) getAgeOfOldestEndpointUptimeEntry(tx *sql.Tx, endpointID int64) 
 		return 0, errNoRowsReturned
 	}
 	return time.Since(time.Unix(oldestEndpointUptimeUnixTimestamp, 0)), nil
+}
+
+// getLastEndpointResultEventType returns the type of event that the last result of an endpoint corresponds to:
+// unhealthy if it failed, degraded if it succeeded but at least one of its conditions (a degraded-condition) failed,
+// healthy otherwise.
+func (s *Store) getLastEndpointResultEventType(tx *sql.Tx, endpointID int64) (endpoint.EventType, error) {
+	var success bool
+	var failedConditions int64
+	err := tx.QueryRow(
+		`
+			SELECT r.success, (SELECT COUNT(1) FROM endpoint_result_conditions c WHERE c.endpoint_result_id = r.endpoint_result_id AND c.success = $2)
+			FROM endpoint_results r
+			WHERE r.endpoint_id = $1
+			ORDER BY r.endpoint_result_id DESC
+			LIMIT 1
+		`,
+		endpointID,
+		false,
+	).Scan(&success, &failedConditions)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errNoRowsReturned
+		}
+		return "", err
+	}
+	if !success {
+		return endpoint.EventUnhealthy, nil
+	}
+	if failedConditions > 0 {
+		return endpoint.EventDegraded, nil
+	}
+	return endpoint.EventHealthy, nil
 }
 
 func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) (bool, error) {

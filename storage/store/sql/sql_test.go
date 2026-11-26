@@ -942,3 +942,39 @@ func TestEventOrderingFix(t *testing.T) {
 	t.Logf("First event: %s at %v", events[0].Type, events[0].Timestamp)
 	t.Logf("Last event: %s at %v", events[len(events)-1].Type, events[len(events)-1].Timestamp)
 }
+
+func TestStore_InsertEndpointResultCreatesDegradedEvents(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertEndpointResultCreatesDegradedEvents.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	defer store.Close()
+	ts := time.Now()
+	next := func() time.Time { ts = ts.Add(time.Minute); return ts }
+	healthy := func() *endpoint.Result {
+		return &endpoint.Result{Success: true, Timestamp: next(), ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: true}}}
+	}
+	degraded := func() *endpoint.Result {
+		return &endpoint.Result{Success: true, Timestamp: next(), ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: true}, {Condition: "[RESPONSE_TIME] < 700", Success: false}}}
+	}
+	unhealthy := func() *endpoint.Result {
+		return &endpoint.Result{Success: false, Timestamp: next(), ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: false}}}
+	}
+	// healthy, healthy (no event), degraded, degraded (no event), healthy, unhealthy, degraded
+	for _, r := range []*endpoint.Result{healthy(), healthy(), degraded(), degraded(), healthy(), unhealthy(), degraded()} {
+		if err := store.InsertEndpointResult(&testEndpoint, r); err != nil {
+			t.Fatal("failed to insert result:", err.Error())
+		}
+	}
+	status, err := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithEvents(1, 20))
+	if err != nil {
+		t.Fatal("failed to retrieve status:", err.Error())
+	}
+	// The first event is always EventStart, followed by one event per change of state
+	expected := []endpoint.EventType{endpoint.EventStart, endpoint.EventHealthy, endpoint.EventDegraded, endpoint.EventHealthy, endpoint.EventUnhealthy, endpoint.EventDegraded}
+	if len(status.Events) != len(expected) {
+		t.Fatalf("expected %d events, got %d: %+v", len(expected), len(status.Events), status.Events)
+	}
+	for i, eventType := range expected {
+		if status.Events[i].Type != eventType {
+			t.Errorf("expected event %d to be %s, got %s", i, eventType, status.Events[i].Type)
+		}
+	}
+}

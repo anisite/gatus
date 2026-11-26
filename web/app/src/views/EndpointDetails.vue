@@ -138,6 +138,7 @@
                   <div class="mt-1">
                     <ArrowUpCircle v-if="event.type === 'HEALTHY'" class="h-5 w-5 text-green-500" />
                     <ArrowDownCircle v-else-if="event.type === 'UNHEALTHY'" class="h-5 w-5 text-red-500" />
+                    <AlertTriangle v-else-if="event.type === 'DEGRADED'" class="h-5 w-5 text-yellow-500" />
                     <PlayCircle v-else class="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div class="flex-1">
@@ -204,7 +205,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, AlertTriangle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -332,6 +333,8 @@ const fetchData = async () => {
               event.fancyText = t('Endpoint is unhealthy')
             } else if (event.type === 'HEALTHY') {
               event.fancyText = t('Endpoint is healthy')
+            } else if (event.type === 'DEGRADED') {
+              event.fancyText = t('Endpoint is degraded')
             } else if (event.type === 'START') {
               event.fancyText = t('Monitoring started')
             }
@@ -339,6 +342,8 @@ const fetchData = async () => {
             let nextEvent = data.events[i + 1]
             if (event.type === 'HEALTHY') {
               event.fancyText = t('Endpoint became healthy')
+            } else if (event.type === 'DEGRADED') {
+              event.fancyText = t('Endpoint was degraded for {duration}', { duration: generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp) })
             } else if (event.type === 'UNHEALTHY') {
               if (nextEvent) {
                 event.fancyText = t('Endpoint was unhealthy for {duration}', { duration: generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp) })

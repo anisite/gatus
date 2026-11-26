@@ -54,6 +54,8 @@ export default {
   'Monitoring started': 'Début de la surveillance',
   'Endpoint became healthy': "L'endpoint est redevenu opérationnel",
   'Endpoint became unhealthy': "L'endpoint est tombé en panne",
+  'Endpoint is degraded': "L'endpoint a des performances dégradées",
+  'Endpoint was degraded for {duration}': "L'endpoint a eu des performances dégradées pendant {duration}",
   'Endpoint was unhealthy for {duration}': "L'endpoint a été en panne pendant {duration}",
   'Average response time': 'Temps de réponse moyen',
   'Minimum and maximum response time': 'Temps de réponse minimum et maximum',

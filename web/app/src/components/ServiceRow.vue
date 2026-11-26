@@ -1,5 +1,5 @@
 <template>
-  <div class="service-row px-4 sm:px-6 py-4">
+  <div class="service-row px-4 sm:px-6 py-2.5">
     <!-- Status line: icon, name, status label, expand button -->
     <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
       <!-- Le titre mène à la page de l'endpoint ; seul le + / - ouvre les infos. Le nom passe à la ligne au besoin (mobile). -->
@@ -34,12 +34,12 @@
     </div>
 
     <!-- History bar -->
-    <div class="historique-barres flex gap-[2px] mt-3">
+    <div class="historique-barres flex gap-[2px] mt-2">
       <div
         v-for="(result, index) in displayResults"
         :key="index"
         :class="[
-          'flex-1 h-7 sm:h-8 rounded-[2px] transition-colors',
+          'flex-1 h-5 sm:h-6 rounded-[2px] transition-colors',
           result ? 'cursor-pointer' : '',
           segmentClass(result, index)
         ]"

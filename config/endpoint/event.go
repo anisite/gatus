@@ -25,15 +25,22 @@ var (
 
 	// EventUnhealthy is a type of event that represents an endpoint failing one or more of its conditions
 	EventUnhealthy EventType = "UNHEALTHY"
+
+	// EventDegraded is a type of event that represents an endpoint that passes its conditions but fails one or more of
+	// its degraded-conditions (slow, for instance). It is not downtime: uptime is not affected.
+	EventDegraded EventType = "DEGRADED"
 )
 
 // NewEventFromResult creates an Event from a Result
 func NewEventFromResult(result *Result) *Event {
 	event := &Event{Timestamp: result.Timestamp}
-	if result.Success {
-		event.Type = EventHealthy
-	} else {
+	switch {
+	case !result.Success:
 		event.Type = EventUnhealthy
+	case result.Degraded():
+		event.Type = EventDegraded
+	default:
+		event.Type = EventHealthy
 	}
 	return event
 }
