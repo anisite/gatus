@@ -59,6 +59,7 @@ type Config struct {
 	Theme                   string   `yaml:"theme,omitempty"`                  // Theme is the interface theme: 'default' (Gatus) or 'utd' (UTD design system, always dark)
 	ThemeMode               string   `yaml:"theme-mode,omitempty"`             // ThemeMode applies to the utd theme: 'system' (default), 'light' or 'dark'
 	Language                string   `yaml:"language,omitempty"`               // Language of the interface: 'fr' (default) or 'en'
+	HideFilters             bool     `yaml:"hide-filters,omitempty"`          // HideFilters hides the search, filter and sort section of the dashboard
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////

@@ -37,8 +37,9 @@
           <AlertCircle v-else class="h-6 w-6 flex-shrink-0" />
           <span class="text-lg">{{ overallStatusLabel }}</span>
         </div>
-        <!-- Search bar -->
+        <!-- Search bar (masquée avec ui.hide-filters ; elle reste montée pour appliquer le tri et le filtre par défaut) -->
         <SearchBar
+          v-show="!hideFilters"
           @search="handleSearch"
           @update:showOnlyFailing="showOnlyFailing = $event"
           @update:showRecentFailures="showRecentFailures = $event"
@@ -610,6 +611,8 @@ const initializeCollapsedGroups = () => {
     // On error, uncollapsedGroups stays empty (all collapsed by default)
   }
 }
+
+const hideFilters = computed(() => window.config && window.config.hideFilters === true)
 
 const dashboardHeading = computed(() => {
   return window.config && window.config.dashboardHeading && window.config.dashboardHeading !== '{{ .UI.DashboardHeading }}' ? window.config.dashboardHeading : "Health Dashboard"
