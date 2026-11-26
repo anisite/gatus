@@ -27,11 +27,17 @@ const (
 )
 
 var (
-	defaultDarkMode = true
+	defaultDarkMode  = true
+	defaultTheme     = "default"
+	defaultThemeMode = "system"
+	defaultLanguage  = "fr"
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrInvalidTheme           = errors.New("invalid theme value: must be 'default' or 'utd'")
+	ErrInvalidThemeMode       = errors.New("invalid theme-mode value: must be 'system', 'light' or 'dark'")
+	ErrInvalidLanguage        = errors.New("invalid language value: must be 'fr' or 'en'")
 )
 
 // Config is the configuration for the UI of Gatus
@@ -50,6 +56,9 @@ type Config struct {
 	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
 	LoginSubtitle           string   `yaml:"login-subtitle,omitempty"`         // LoginSubtitle is the subtitle displayed on the OIDC login page
+	Theme                   string   `yaml:"theme,omitempty"`                  // Theme is the interface theme: 'default' (Gatus) or 'utd' (UTD design system, always dark)
+	ThemeMode               string   `yaml:"theme-mode,omitempty"`             // ThemeMode applies to the utd theme: 'system' (default), 'light' or 'dark'
+	Language                string   `yaml:"language,omitempty"`               // Language of the interface: 'fr' (default) or 'en'
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -98,6 +107,9 @@ func GetDefaultConfig() *Config {
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
 		LoginSubtitle:          defaultLoginSubtitle,
+		Theme:                  defaultTheme,
+		ThemeMode:              defaultThemeMode,
+		Language:               defaultLanguage,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 		Favicon: Favicon{
 			Default:   defaultFavicon,
@@ -145,6 +157,21 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if len(cfg.Theme) == 0 {
+		cfg.Theme = defaultTheme
+	} else if cfg.Theme != "default" && cfg.Theme != "utd" {
+		return ErrInvalidTheme
+	}
+	if len(cfg.ThemeMode) == 0 {
+		cfg.ThemeMode = defaultThemeMode
+	} else if cfg.ThemeMode != "system" && cfg.ThemeMode != "light" && cfg.ThemeMode != "dark" {
+		return ErrInvalidThemeMode
+	}
+	if len(cfg.Language) == 0 {
+		cfg.Language = defaultLanguage
+	} else if cfg.Language != "fr" && cfg.Language != "en" {
+		return ErrInvalidLanguage
 	}
 	if len(cfg.LoginSubtitle) == 0 {
 		cfg.LoginSubtitle = defaultLoginSubtitle

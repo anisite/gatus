@@ -1,0 +1,87 @@
+/* Thème UTD. Actif seulement avec la classe html.utd-theme ; html.utd-dark = mode foncé (ui.theme-mode). */
+html.utd-theme, html.utd-theme.dark {
+  color-scheme: light;
+  --background: 0 0% 100%;
+  --foreground: 215 28% 17%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 28% 17%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 28% 17%;
+  --primary: 207 90% 32%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 20% 96%;
+  --secondary-foreground: 215 28% 17%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 14% 40%;
+  --accent: 210 20% 94%;
+  --accent-foreground: 215 28% 17%;
+  --border: 214 15% 82%;
+  --input: 214 15% 82%;
+  --ring: 207 90% 32%;
+}
+html.utd-theme.utd-dark {
+  color-scheme: dark;
+  --background: 222 47% 11%;
+  --foreground: 214 32% 91%;
+  --card: 222 40% 14%;
+  --card-foreground: 214 32% 91%;
+  --popover: 222 47% 9%;
+  --popover-foreground: 214 32% 91%;
+  --primary: 210 80% 66%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 217 33% 20%;
+  --secondary-foreground: 214 32% 91%;
+  --muted: 217 33% 20%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 20%;
+  --accent-foreground: 214 32% 91%;
+  --border: 217 33% 24%;
+  --input: 217 33% 24%;
+  --ring: 210 80% 66%;
+}
+html.utd-theme body { font-family: 'Open Sans', system-ui, sans-serif; }
+html.utd-theme h1, html.utd-theme h2, html.utd-theme h3 { font-family: 'Roboto', 'Open Sans', sans-serif; }
+/* Carrés d'historique et pastilles : vert UTD */
+html.utd-theme .bg-green-500, html.utd-theme .bg-emerald-500 { background-color: var(--vert, #4f8a3b); }
+html.utd-theme .bg-green-600 { background-color: var(--vert-fonce, #2d6a1f); }
+html.utd-theme.utd-dark .text-emerald-500, html.utd-theme.utd-dark .text-green-600 { color: #7fcf5f; }
+/* utd-piv-entete et utd-piv-pied-page : composants à shadow DOM, ajustés de l'extérieur */
+html.utd-theme.utd-dark utd-piv-pied-page { display: block; filter: invert(1) hue-rotate(180deg); }
+html.utd-theme.utd-dark .utd-entete { background: #0b1220; }
+/* UTD colore les titres en bleu foncé : illisible sur fond foncé */
+html.utd-theme.utd-dark h1, html.utd-theme.utd-dark h2, html.utd-theme.utd-dark h3,
+html.utd-theme.utd-dark h4, html.utd-theme.utd-dark h5, html.utd-theme.utd-dark h6 { color: hsl(var(--foreground)); }
+/* Liste des services : comme la maquette UTD (barres de 90 carrés plus espacées, nom plus gras) */
+html.utd-theme .historique-barres { gap: 3px; }
+html.utd-theme .historique-barres > div { border-radius: 3px; }
+html.utd-theme .service-row .font-medium { font-weight: 600; font-size: 1.125rem; }
+/* Avis maison, au style de utd-avis (le composant UTD est à shadow DOM : impossible à passer en foncé) */
+.avis-utd { display: flex; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); overflow: hidden; }
+.avis-utd-icone { display: flex; align-items: center; padding: 0 12px; background: #f8e6a0; color: #8a5a00; }
+.avis-utd.succes .avis-utd-icone { background: #d4edbc; color: #2d6a1f; }
+.avis-utd.erreur .avis-utd-icone { background: #f8d7d3; color: #a1281c; }
+.avis-utd-texte { margin: 0; padding: 16px; font-weight: 600; color: hsl(var(--foreground)); }
+html.utd-theme.utd-dark .avis-utd-icone { background: #4a3a0a; color: #facc15; }
+html.utd-theme.utd-dark .avis-utd.succes .avis-utd-icone { background: #17331a; color: #7fcf5f; }
+html.utd-theme.utd-dark .avis-utd.erreur .avis-utd-icone { background: #4a1713; color: #f87171; }
+/* Moins d'espace avant le h1 */
+html.utd-theme .dashboard-container > .container { padding-top: 16px; }
+html.utd-theme h1 { margin-top: 0; }
+/* UTD impose header { margin-bottom: 48px } : inutile ici, les pages ont déjà leur propre marge */
+html.utd-theme header.utd-entete { margin-bottom: 0; }
+/* UTD colore les liens visités en mauve : le titre d'un service garde la couleur du texte */
+html.utd-theme .service-row a, html.utd-theme .service-row a:visited { color: inherit; }
+/* Point de couleur dans les pastilles UTD (.avec-point) */
+html.utd-theme .utd-pastille.avec-point::before {
+  content: '';
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.45em;
+  border-radius: 50%;
+  vertical-align: baseline;
+  background: #22c55e;
+}
+html.utd-theme .utd-pastille.avec-point.jaune::before { background: #eab308; }
+html.utd-theme .utd-pastille.avec-point.rouge::before { background: #ef4444; }
+html.utd-theme .utd-pastille.avec-point.bleu::before { background: #4a98d9; }

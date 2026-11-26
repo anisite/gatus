@@ -2,14 +2,14 @@
   <div class="space-y-4">
     <!-- Timeline header -->
     <div class="flex items-center gap-4">
-      <div class="text-sm font-medium text-muted-foreground">Start</div>
+      <div class="text-sm font-medium text-muted-foreground">{{ $t('Start') }}</div>
       <div class="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div 
           class="h-full bg-green-500 dark:bg-green-600 rounded-full transition-all duration-300 ease-out"
           :style="{ width: progressPercentage + '%' }"
         ></div>
       </div>
-      <div class="text-sm font-medium text-muted-foreground">End</div>
+      <div class="text-sm font-medium text-muted-foreground">{{ $t('End') }}</div>
     </div>
     
     <!-- Progress stats -->
@@ -33,34 +33,34 @@
     
     <!-- Legend -->
     <div class="mt-6 pt-4 border-t">
-      <div class="text-sm font-medium text-muted-foreground mb-2">Status Legend</div>
+      <div class="text-sm font-medium text-muted-foreground mb-2">{{ $t('Status Legend') }}</div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
         <div v-if="hasSuccessSteps" class="flex items-center gap-2">
           <div class="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
             <CheckCircle class="w-3 h-3 text-white" />
           </div>
-          <span class="text-muted-foreground">Success</span>
+          <span class="text-muted-foreground">{{ $t('Success') }}</span>
         </div>
         
         <div v-if="hasFailedSteps" class="flex items-center gap-2">
           <div class="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
             <XCircle class="w-3 h-3 text-white" />
           </div>
-          <span class="text-muted-foreground">Failed</span>
+          <span class="text-muted-foreground">{{ $t('Failed') }}</span>
         </div>
         
         <div v-if="hasSkippedSteps" class="flex items-center gap-2">
           <div class="w-4 h-4 rounded-full bg-gray-400 flex items-center justify-center">
             <SkipForward class="w-3 h-3 text-white" />
           </div>
-          <span class="text-muted-foreground">Skipped</span>
+          <span class="text-muted-foreground">{{ $t('Skipped') }}</span>
         </div>
         
         <div v-if="hasAlwaysRunSteps" class="flex items-center gap-2">
           <div class="w-4 h-4 rounded-full bg-blue-500 border-2 border-blue-200 dark:border-blue-800 flex items-center justify-center">
             <RotateCcw class="w-3 h-3 text-white" />
           </div>
-          <span class="text-muted-foreground">Always Run</span>
+          <span class="text-muted-foreground">{{ $t('Always Run') }}</span>
         </div>
       </div>
     </div>

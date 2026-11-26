@@ -1,5 +1,6 @@
 <template>
-  <Badge :variant="variant" class="flex items-center gap-1">
+  <span v-if="uiTheme === 'utd'" :class="['utd-pastille', 'avec-point', utdColor]">{{ label }}</span>
+  <Badge v-else :variant="variant" class="flex items-center gap-1">
     <span :class="['w-2 h-2 rounded-full', dotClass]"></span>
     {{ label }}
   </Badge>
@@ -8,6 +9,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Badge } from '@/components/ui/badge'
+import { uiTheme } from '@/utils/uiTheme'
 
 const props = defineProps({
   status: {
@@ -30,16 +32,18 @@ const variant = computed(() => {
   }
 })
 
+const utdColor = computed(() => ({ healthy: 'vert', degraded: 'jaune', unhealthy: 'rouge' }[props.status] || 'bleu'))
+
 const label = computed(() => {
   switch (props.status) {
     case 'healthy':
-      return 'Healthy'
+      return 'Opérationnel'
     case 'unhealthy':
-      return 'Unhealthy'
+      return 'Panne'
     case 'degraded':
-      return 'Degraded'
+      return 'Performances dégradées'
     default:
-      return 'Unknown'
+      return 'Inconnu'
   }
 })
 

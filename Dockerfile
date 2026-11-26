@@ -1,8 +1,18 @@
+# Build the frontend (the build date is shown in the footer)
+FROM node:22-alpine AS frontend
+WORKDIR /app/web/app
+COPY web/app/package*.json ./
+RUN npm ci
+COPY web/app ./
+ARG BUILD_DATE=""
+RUN VUE_APP_BUILD_DATE="${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" npm run build
+
 # Build the go application into a binary
 FROM golang:alpine AS builder
 RUN apk --update add ca-certificates
 WORKDIR /app
 COPY . ./
+COPY --from=frontend /app/web/static ./web/static
 RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gatus .
 

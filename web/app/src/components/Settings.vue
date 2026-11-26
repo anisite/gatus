@@ -34,18 +34,18 @@
       <!-- Divider -->
       <div class="h-5 w-px bg-border/50" />
 
-      <!-- Theme Toggle -->
+      <!-- Theme Toggle (avec le thème UTD, il change le mode clair/foncé pour ce visiteur) -->
       <button
         @click="toggleDarkMode"
-        :aria-label="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+        :aria-label="isDark ? $t('Switch to light mode') : $t('Switch to dark mode')"
         class="p-1.5 rounded-full hover:bg-accent transition-colors group relative"
       >
-        <Sun v-if="darkMode" class="h-3.5 w-3.5 transition-all" />
+        <Sun v-if="isDark" class="h-3.5 w-3.5 transition-all" />
         <Moon v-else class="h-3.5 w-3.5 transition-all" />
         
         <!-- Tooltip -->
         <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-          {{ darkMode ? 'Light mode' : 'Dark mode' }}
+          {{ isDark ? $t('Light mode') : $t('Dark mode') }}
         </div>
       </button>
     </div>
@@ -54,8 +54,9 @@
 
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Sun, Moon, RefreshCw } from 'lucide-vue-next'
+import { uiTheme, utdDark, toggleUtdMode } from '@/utils/uiTheme'
 
 const emit = defineEmits(['refreshData'])
 
@@ -91,6 +92,7 @@ function getStoredRefreshInterval() {
 // State
 const refreshIntervalValue = ref(getStoredRefreshInterval())
 const darkMode = ref(wantsDarkMode())
+const isDark = computed(() => (uiTheme.value === 'utd' ? utdDark.value : darkMode.value))
 const showRefreshMenu = ref(false)
 let refreshIntervalHandler = null
 
@@ -134,12 +136,18 @@ const setThemeCookie = (theme) => {
 }
 
 const toggleDarkMode = () => {
+  if (uiTheme.value === 'utd') {
+    toggleUtdMode()
+    return
+  }
   const newTheme = wantsDarkMode() ? 'light' : 'dark'
   setThemeCookie(newTheme)
   applyTheme()
 }
 
 const applyTheme = () => {
+  // Avec le thème UTD, le mode clair/foncé vient de la config (ui.theme-mode), pas du cookie
+  if (uiTheme.value === 'utd') return
   const isDark = wantsDarkMode()
   darkMode.value = isDark
   document.documentElement.classList.toggle('dark', isDark)

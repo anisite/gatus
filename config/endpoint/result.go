@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"encoding/json"
 	"slices"
 	"time"
 )
@@ -62,6 +63,29 @@ type Result struct {
 	// Name of the endpoint (ONLY USED FOR SUITES)
 	// Group is not needed because it's inherited from the suite
 	Name string `json:"name,omitempty"`
+}
+
+// Degraded returns whether the result is a success, but at least one condition (a degraded condition) failed.
+// A degraded result is not considered downtime.
+func (r *Result) Degraded() bool {
+	if r == nil || !r.Success {
+		return false
+	}
+	for _, conditionResult := range r.ConditionResults {
+		if !conditionResult.Success {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON adds the computed "degraded" field to the serialized result
+func (r *Result) MarshalJSON() ([]byte, error) {
+	type resultAlias Result
+	return json.Marshal(struct {
+		*resultAlias
+		Degraded bool `json:"degraded,omitempty"`
+	}{resultAlias: (*resultAlias)(r), Degraded: r.Degraded()})
 }
 
 // AddError adds an error to the result's list of errors.

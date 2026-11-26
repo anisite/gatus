@@ -4,7 +4,7 @@
       <div class="mb-6">
         <Button variant="ghost" class="mb-4" @click="goBack">
           <ArrowLeft class="h-4 w-4 mr-2" />
-          Back to Dashboard
+          {{ $t('Back to Dashboard') }}
         </Button>
         
         <div v-if="endpointStatus && endpointStatus.name" class="space-y-6">
@@ -12,7 +12,7 @@
             <div>
               <h1 class="text-4xl font-bold tracking-tight">{{ endpointStatus.name }}</h1>
               <div class="flex items-center gap-3 text-muted-foreground mt-2">
-                <span v-if="endpointStatus.group">Group: {{ endpointStatus.group }}</span>
+                <span v-if="endpointStatus.group">{{ $t('Group: {group}', { group: endpointStatus.group }) }}</span>
                 <span v-if="endpointStatus.group && hostname">•</span>
                 <span v-if="hostname">{{ hostname }}</span>
               </div>
@@ -23,16 +23,16 @@
           <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader class="pb-2">
-                <CardTitle class="text-sm font-medium text-muted-foreground">Current Status</CardTitle>
+                <CardTitle class="text-sm font-medium text-muted-foreground">{{ $t('Current Status') }}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ currentHealthStatus === 'healthy' ? 'Operational' : 'Issues Detected' }}</div>
+                <div class="text-2xl font-bold">{{ currentHealthStatus === 'healthy' ? $t('Operational') : $t('Issues Detected') }}</div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader class="pb-2">
-                <CardTitle class="text-sm font-medium text-muted-foreground">Avg Response Time</CardTitle>
+                <CardTitle class="text-sm font-medium text-muted-foreground">{{ $t('Avg Response Time') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="text-2xl font-bold">{{ pageAverageResponseTime }}</div>
@@ -41,7 +41,7 @@
 
             <Card>
               <CardHeader class="pb-2">
-                <CardTitle class="text-sm font-medium text-muted-foreground">Response Time Range</CardTitle>
+                <CardTitle class="text-sm font-medium text-muted-foreground">{{ $t('Response Time Range') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="text-2xl font-bold">{{ pageResponseTimeRange }}</div>
@@ -50,7 +50,7 @@
 
             <Card>
               <CardHeader class="pb-2">
-                <CardTitle class="text-sm font-medium text-muted-foreground">Last Check</CardTitle>
+                <CardTitle class="text-sm font-medium text-muted-foreground">{{ $t('Last Check') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="text-2xl font-bold">{{ lastCheckTime }}</div>
@@ -61,13 +61,13 @@
           <Card>
             <CardHeader>
               <div class="flex items-center justify-between">
-                <CardTitle>Recent Checks</CardTitle>
+                <CardTitle>{{ $t('Recent Checks') }}</CardTitle>
                 <div class="flex items-center gap-2">
                   <Button 
                     variant="ghost" 
                     size="icon"
                     @click="toggleShowAverageResponseTime"
-                    :title="showAverageResponseTime ? 'Show min-max response time' : 'Show average response time'"
+                    :title="showAverageResponseTime ? $t('Show min-max response time') : $t('Show average response time')"
                   >
                     <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
                     <Timer v-else class="h-5 w-5" />
@@ -76,7 +76,7 @@
                     variant="ghost" 
                     size="icon" 
                     @click="fetchData"
-                    title="Refresh data"
+                    :title="$t('Refresh data')"
                     :disabled="isRefreshing"
                   >
                     <RefreshCw :class="['h-4 w-4', isRefreshing && 'animate-spin']" />
@@ -105,14 +105,14 @@
             <Card>
               <CardHeader>
                 <div class="flex items-center justify-between">
-                  <CardTitle>Response Time Trend</CardTitle>
+                  <CardTitle>{{ $t('Response Time Trend') }}</CardTitle>
                   <select 
                     v-model="selectedChartDuration"
                     class="text-sm bg-background border rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="24h">24 hours</option>
-                    <option value="7d">7 days</option>
-                    <option value="30d">30 days</option>
+                    <option value="24h">{{ $t('24 hours') }}</option>
+                    <option value="7d">{{ $t('7 days') }}</option>
+                    <option value="30d">{{ $t('30 days') }}</option>
                   </select>
                 </div>
               </CardHeader>
@@ -126,51 +126,11 @@
                 />
               </CardContent>
             </Card>
-
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card v-for="period in ['30d', '7d', '24h', '1h']" :key="period">
-                <CardHeader class="pb-2">
-                  <CardTitle class="text-sm font-medium text-muted-foreground text-center">
-                    {{ period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <img :src="generateResponseTimeBadgeImageURL(period)" :alt="`${period} response time`" class="mx-auto mt-2" />
-                </CardContent>
-              </Card>
-            </div>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Uptime Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                <div v-for="period in ['365d', '30d', '7d', '24h', '1h']" :key="period" class="text-center">
-                  <p class="text-sm text-muted-foreground mb-2">
-                    {{ period === '365d' ? 'Last 365 days' : period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
-                  </p>
-                  <img :src="generateUptimeBadgeImageURL(period)" :alt="`${period} uptime`" class="mx-auto" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Health</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="text-center">
-                <img :src="generateHealthBadgeImageURL()" alt="health badge" class="mx-auto" />
-              </div>
-            </CardContent>
-          </Card>
 
           <Card v-if="events && events.length > 0">
             <CardHeader>
-              <CardTitle>Events</CardTitle>
+              <CardTitle>{{ $t('Events') }}</CardTitle>
             </CardHeader>
             <CardContent>
               <div class="space-y-4">
@@ -185,6 +145,47 @@
                     <p class="text-sm text-muted-foreground">{{ prettifyTimestamp(event.timestamp) }} • {{ event.fancyTimeAgo }}</p>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Exemples de badges (SVG) : en bas de page, après le contenu principal -->
+            <div v-if="showResponseTimeChartAndBadges" class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card v-for="period in ['30d', '7d', '24h', '1h']" :key="period">
+                <CardHeader class="pb-2">
+                  <CardTitle class="text-sm font-medium text-muted-foreground text-center">
+                    {{ period === '30d' ? $t('Last 30 days') : period === '7d' ? $t('Last 7 days') : period === '24h' ? $t('Last 24 hours') : $t('Last hour') }}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <img :src="generateResponseTimeBadgeImageURL(period)" :alt="`${period} response time`" class="mx-auto mt-2" />
+                </CardContent>
+              </Card>
+            </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{{ $t('Uptime Statistics') }}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div v-for="period in ['365d', '30d', '7d', '24h', '1h']" :key="period" class="text-center">
+                  <p class="text-sm text-muted-foreground mb-2">
+                    {{ period === '365d' ? $t('Last 365 days') : period === '30d' ? $t('Last 30 days') : period === '7d' ? $t('Last 7 days') : period === '24h' ? $t('Last 24 hours') : $t('Last hour') }}
+                  </p>
+                  <img :src="generateUptimeBadgeImageURL(period)" :alt="`${period} uptime`" class="mx-auto" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{{ $t('Current Health') }}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="text-center">
+                <img :src="generateHealthBadgeImageURL()" alt="health badge" class="mx-auto" />
               </div>
             </CardContent>
           </Card>
@@ -213,6 +214,7 @@ import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
+import { t } from '@/i18n'
 
 const router = useRouter()
 const route = useRoute()
@@ -238,6 +240,7 @@ const latestResult = computed(() => {
 
 const currentHealthStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
+  if (latestResult.value.degraded) return 'degraded'
   return latestResult.value.success ? 'healthy' : 'unhealthy'
 })
 
@@ -298,7 +301,7 @@ const pageResponseTimeRange = computed(() => {
 const lastCheckTime = computed(() => {
   // Use currentStatus for real-time last check time
   if (!currentStatus.value || !currentStatus.value.results || currentStatus.value.results.length === 0) {
-    return 'Never'
+    return t('Never')
   }
   return generatePrettyTimeAgo(currentStatus.value.results[currentStatus.value.results.length - 1].timestamp)
 })
@@ -326,24 +329,24 @@ const fetchData = async () => {
           let event = data.events[i]
           if (i === data.events.length - 1) {
             if (event.type === 'UNHEALTHY') {
-              event.fancyText = 'Endpoint is unhealthy'
+              event.fancyText = t('Endpoint is unhealthy')
             } else if (event.type === 'HEALTHY') {
-              event.fancyText = 'Endpoint is healthy'
+              event.fancyText = t('Endpoint is healthy')
             } else if (event.type === 'START') {
-              event.fancyText = 'Monitoring started'
+              event.fancyText = t('Monitoring started')
             }
           } else {
             let nextEvent = data.events[i + 1]
             if (event.type === 'HEALTHY') {
-              event.fancyText = 'Endpoint became healthy'
+              event.fancyText = t('Endpoint became healthy')
             } else if (event.type === 'UNHEALTHY') {
               if (nextEvent) {
-                event.fancyText = 'Endpoint was unhealthy for ' + generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp)
+                event.fancyText = t('Endpoint was unhealthy for {duration}', { duration: generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp) })
               } else {
-                event.fancyText = 'Endpoint became unhealthy'
+                event.fancyText = t('Endpoint became unhealthy')
               }
             } else if (event.type === 'START') {
-              event.fancyText = 'Monitoring started'
+              event.fancyText = t('Monitoring started')
             }
           }
           event.fancyTimeAgo = generatePrettyTimeAgo(event.timestamp)

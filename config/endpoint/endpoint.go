@@ -58,6 +58,10 @@ const (
 )
 
 var (
+	// Compiled once instead of on every health check
+	contextPlaceholderRegex      = regexp.MustCompile(`\[CONTEXT\]\.[\w\.\-]+`)
+	randomStringPlaceholderRegex = regexp.MustCompile(`\[RANDOM_STRING_\d+\]`)
+
 	// ErrEndpointWithNoCondition is the error with which Gatus will panic if an endpoint is configured with no conditions
 	ErrEndpointWithNoCondition = errors.New("you must specify at least one condition per endpoint")
 
@@ -111,6 +115,10 @@ type Endpoint struct {
 
 	// Conditions used to determine the health of the endpoint
 	Conditions []Condition `yaml:"conditions"`
+
+	// DegradedConditions are evaluated only if all Conditions pass. If one of them fails, the result is still a
+	// success (it does not count as downtime), but it is flagged as degraded (e.g. slow response time)
+	DegradedConditions []Condition `yaml:"degraded-conditions,omitempty"`
 
 	// Alerts is the alerting configuration for the endpoint in case of failure
 	Alerts []*alert.Alert `yaml:"alerts,omitempty"`
@@ -241,6 +249,19 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
 		}
 	}
+	for _, c := range e.DegradedConditions {
+		if e.Interval < 5*time.Minute && c.hasDomainExpirationPlaceholder() {
+			return ErrInvalidEndpointIntervalForDomainExpirationPlaceholder
+		}
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
+		}
+	}
+	for _, maintenanceWindow := range e.MaintenanceWindows {
+		if err := maintenanceWindow.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
+	}
 	if e.DNSConfig != nil {
 		return e.DNSConfig.ValidateAndSetDefault()
 	}
@@ -249,11 +270,6 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if e.Type() == TypeUNKNOWN {
 		return ErrUnknownEndpointType
-	}
-	for _, maintenanceWindow := range e.MaintenanceWindows {
-		if err := maintenanceWindow.ValidateAndSetDefaults(); err != nil {
-			return err
-		}
 	}
 	// Make sure that the request can be created
 	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.getParsedBody())))
@@ -338,6 +354,13 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 			result.Success = false
 		}
 	}
+	// Degraded conditions only matter if the endpoint is otherwise healthy. A failing degraded condition does not
+	// change result.Success, it is only reported through the condition results (see Result.Degraded)
+	if result.Success {
+		for _, condition := range processedEndpoint.DegradedConditions {
+			condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, processedEndpoint.UIConfig.ResolveSuccessfulConditions, context)
+		}
+	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
 	if processedEndpoint.UIConfig.HideURL {
@@ -398,8 +421,7 @@ func replaceContextPlaceholders(input string, ctx *gontext.Gontext) (string, err
 		return input, nil
 	}
 	var contextErrors []string
-	contextRegex := regexp.MustCompile(`\[CONTEXT\]\.[\w\.\-]+`)
-	result := contextRegex.ReplaceAllStringFunc(input, func(match string) string {
+	result := contextPlaceholderRegex.ReplaceAllStringFunc(input, func(match string) string {
 		// Extract the path after [CONTEXT].
 		path := strings.TrimPrefix(match, "[CONTEXT].")
 		value, err := ctx.Get(path)
@@ -420,22 +442,18 @@ func (e *Endpoint) getParsedBody() string {
 	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", e.Name)
 	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", e.Group)
 	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", e.URL)
-	randRegex, err := regexp.Compile(`\[RANDOM_STRING_\d+\]`)
-	if err == nil {
-		body = randRegex.ReplaceAllStringFunc(body, func(match string) string {
-			n, _ := strconv.Atoi(match[15 : len(match)-1])
-			if n > 8192 {
-				n = 8192 // Limit the length of the random string to 8192 bytes to avoid excessive memory usage
-			}
-			const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-			b := make([]byte, n)
-			for i := range b {
-				b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
-			}
-			return string(b)
-		})
-	}
-	return body
+	return randomStringPlaceholderRegex.ReplaceAllStringFunc(body, func(match string) string {
+		n, _ := strconv.Atoi(match[15 : len(match)-1])
+		if n > 8192 {
+			n = 8192 // Limit the length of the random string to 8192 bytes to avoid excessive memory usage
+		}
+		const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		b := make([]byte, n)
+		for i := range b {
+			b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
+		}
+		return string(b)
+	})
 }
 
 func (e *Endpoint) getIP(result *Result) {
@@ -590,7 +608,7 @@ func (e *Endpoint) buildHTTPRequest() *http.Request {
 
 // needsToReadBody checks if there's any condition or store mapping that requires the response Body to be read
 func (e *Endpoint) needsToReadBody() bool {
-	for _, condition := range e.Conditions {
+	for _, condition := range e.allConditions() {
 		if condition.hasBodyPlaceholder() {
 			return true
 		}
@@ -608,7 +626,7 @@ func (e *Endpoint) needsToReadBody() bool {
 
 // needsToRetrieveDomainExpiration checks if there's any condition that requires a whois query to be performed
 func (e *Endpoint) needsToRetrieveDomainExpiration() bool {
-	for _, condition := range e.Conditions {
+	for _, condition := range e.allConditions() {
 		if condition.hasDomainExpirationPlaceholder() {
 			return true
 		}
@@ -618,12 +636,19 @@ func (e *Endpoint) needsToRetrieveDomainExpiration() bool {
 
 // needsToRetrieveIP checks if there's any condition that requires an IP lookup
 func (e *Endpoint) needsToRetrieveIP() bool {
-	for _, condition := range e.Conditions {
+	for _, condition := range e.allConditions() {
 		if condition.hasIPPlaceholder() {
 			return true
 		}
 	}
 	return false
+}
+
+// allConditions returns both the conditions and the degraded conditions of the endpoint
+func (e *Endpoint) allConditions() []Condition {
+	conditions := make([]Condition, 0, len(e.Conditions)+len(e.DegradedConditions))
+	conditions = append(conditions, e.Conditions...)
+	return append(conditions, e.DegradedConditions...)
 }
 
 // hasHeader checks if a header exists in the map using a case-insensitive lookup

@@ -1,5 +1,5 @@
 <template>
-  <Card class="endpoint h-full flex flex-col transition hover:shadow-lg hover:scale-[1.01] dark:hover:border-gray-700">
+  <Card class="endpoint h-full flex flex-col transition hover:shadow-lg dark:hover:border-gray-700">
     <CardHeader class="endpoint-header px-3 sm:px-6 pt-3 sm:pt-6 pb-2 space-y-0">
       <div class="flex items-start justify-between gap-2 sm:gap-3">
         <div class="flex-1 min-w-0 overflow-hidden">
@@ -31,7 +31,7 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <div class="flex-1"></div>
-            <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
+            <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? $t('Average response time') : $t('Minimum and maximum response time')">{{ formattedResponseTime }}</p>
           </div>
           <div class="flex gap-0.5">
             <div
@@ -41,9 +41,11 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : '',
                 result ? (
-                  result.success 
-                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
+                  result.degraded
+                    ? (selectedResultIndex === index ? 'bg-yellow-600' : 'bg-yellow-400 hover:bg-yellow-600')
+                    : result.success
+                      ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
+                      : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
               @mouseenter="result && handleMouseEnter(result, $event)"
@@ -99,6 +101,7 @@ const latestResult = computed(() => {
 
 const currentStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
+  if (latestResult.value.degraded) return 'degraded'
   return latestResult.value.success ? 'healthy' : 'unhealthy'
 })
 
@@ -106,12 +109,17 @@ const hostname = computed(() => {
   return latestResult.value?.hostname || null
 })
 
+// Moins de carrés sur mobile
+const viewportWidth = ref(window.innerWidth)
+const updateViewportWidth = () => { viewportWidth.value = window.innerWidth }
+const visibleCount = computed(() => (viewportWidth.value < 640 ? Math.min(30, props.maxResults) : props.maxResults))
+
 const displayResults = computed(() => {
   const results = [...(props.endpoint.results || [])]
-  while (results.length < props.maxResults) {
+  while (results.length < visibleCount.value) {
     results.unshift(null)
   }
-  return results.slice(-props.maxResults)
+  return results.slice(-visibleCount.value)
 })
 
 const formattedResponseTime = computed(() => {
@@ -194,9 +202,11 @@ const handleClearSelection = () => {
 
 onMounted(() => {
   window.addEventListener('clear-data-point-selection', handleClearSelection)
+  window.addEventListener('resize', updateViewportWidth)
 })
 
 onUnmounted(() => {
   window.removeEventListener('clear-data-point-selection', handleClearSelection)
+  window.removeEventListener('resize', updateViewportWidth)
 })
 </script>

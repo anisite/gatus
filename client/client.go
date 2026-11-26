@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -156,6 +157,11 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 
 	var connection net.Conn
 	var dnsResolver *DNSResolverConfig
+	defer func() {
+		if connection != nil {
+			_ = connection.Close()
+		}
+	}()
 
 	if config.HasCustomDNSResolver() {
 		dnsResolver, err = config.parseDNSResolver()
@@ -166,6 +172,7 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 			logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
 		} else {
 			dialer := &net.Dialer{
+				Timeout: config.Timeout,
 				Resolver: &net.Resolver{
 					PreferGo: true,
 					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -178,22 +185,37 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 			if err != nil {
 				return
 			}
+			// Bound the SMTP greeting, EHLO and TLS handshake by the client timeout too
+			_ = connection.SetDeadline(time.Now().Add(config.Timeout))
 		}
 	} else {
 		connection, err = net.DialTimeout("tcp", address, config.Timeout)
 		if err != nil {
 			return
 		}
+		// Bound the SMTP greeting, EHLO and TLS handshake by the client timeout too
+		_ = connection.SetDeadline(time.Now().Add(config.Timeout))
 	}
 
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: config.Insecure,
+		ServerName:         hostAndPort[0],
+	}
+	// Peek at the greeting to tell IMAP ("* OK") apart from SMTP ("220") without consuming it
+	reader := bufio.NewReader(connection)
+	greeting, err := reader.Peek(4)
+	if err != nil {
+		return
+	}
+	connection = &bufferedConn{Conn: connection, reader: reader}
+	if string(greeting) == "* OK" {
+		return performIMAPStartTLS(connection, reader, tlsConfig)
+	}
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
 	if err != nil {
 		return
 	}
-	err = smtpClient.StartTLS(&tls.Config{
-		InsecureSkipVerify: config.Insecure,
-		ServerName:         hostAndPort[0],
-	})
+	err = smtpClient.StartTLS(tlsConfig)
 	if err != nil {
 		return
 	}
@@ -203,6 +225,44 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 		return false, nil, errors.New("could not get TLS connection state")
 	}
 	return true, certificate, nil
+}
+
+// bufferedConn is a net.Conn that reads through a bufio.Reader, so bytes that were peeked are not lost
+type bufferedConn struct {
+	net.Conn
+	reader *bufio.Reader
+}
+
+func (c *bufferedConn) Read(p []byte) (int, error) {
+	return c.reader.Read(p)
+}
+
+// performIMAPStartTLS upgrades an IMAP connection to TLS using the STARTTLS command (RFC 3501)
+func performIMAPStartTLS(connection net.Conn, reader *bufio.Reader, tlsConfig *tls.Config) (bool, *x509.Certificate, error) {
+	if _, err := reader.ReadString('\n'); err != nil { // greeting
+		return false, nil, err
+	}
+	if _, err := connection.Write([]byte("a1 STARTTLS\r\n")); err != nil {
+		return false, nil, err
+	}
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return false, nil, err
+		}
+		if strings.HasPrefix(line, "a1 ") {
+			if !strings.HasPrefix(line, "a1 OK") {
+				return false, nil, fmt.Errorf("imap starttls failed: %s", strings.TrimSpace(line))
+			}
+			break
+		}
+	}
+	tlsConnection := tls.Client(connection, tlsConfig)
+	if err := tlsConnection.Handshake(); err != nil {
+		return false, nil, err
+	}
+	defer tlsConnection.Close()
+	return true, tlsConnection.ConnectionState().PeerCertificates[0], nil
 }
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
@@ -271,7 +331,7 @@ func CanCreateSSHConnection(address, username, password, privateKey string, conf
 		}
 	}
 	if len(password) > 0 {
-		authMethods = append(authMethods, ssh.Password(password))
+		authMethods = append(authMethods, sshPasswordAuthMethods(password)...)
 	}
 
 	cli, err := ssh.Dial("tcp", net.JoinHostPort(address, port), &ssh.ClientConfig{
@@ -284,6 +344,25 @@ func CanCreateSSHConnection(address, username, password, privateKey string, conf
 		return false, nil, err
 	}
 	return true, cli, nil
+}
+
+// sshPasswordAuthMethods returns the authentication methods for password-based authentication.
+// In addition to the "password" method, "keyboard-interactive" is supported, because some servers
+// (e.g. PasswordAuthentication disabled, but PAM enabled) only offer the latter, which the OpenSSH CLI
+// transparently uses to prompt for the password. Every keyboard-interactive prompt is answered with the password.
+//
+// Note: config/tunneling/sshtunnel has an equivalent helper; keep both in sync.
+func sshPasswordAuthMethods(password string) []ssh.AuthMethod {
+	return []ssh.AuthMethod{
+		ssh.Password(password),
+		ssh.KeyboardInteractive(func(name, instruction string, questions []string, echos []bool) ([]string, error) {
+			answers := make([]string, len(questions))
+			for i := range questions {
+				answers[i] = password
+			}
+			return answers, nil
+		}),
+	}
 }
 
 func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
@@ -428,6 +507,11 @@ func QueryWebSocket(address, body string, headers map[string]string, config *Con
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
+	// DialContext clears the conn deadline once the handshake completes
+	if deadline, ok := ctx.Deadline(); ok {
+		ws.SetWriteDeadline(deadline)
+		ws.SetReadDeadline(deadline)
+	}
 	body = parseLocalAddressPlaceholder(body, ws.LocalAddr())
 	// Write message
 	if err := ws.WriteMessage(websocket.TextMessage, []byte(body)); err != nil {
@@ -498,6 +582,13 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		case dns.TypeSRV:
 			if srv, ok := rr.(*dns.SRV); ok {
 				body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
+			}
+		case dns.TypeTXT:
+			if txt, ok := rr.(*dns.TXT); ok {
+				if len(body) > 0 {
+					body = append(body, '\n')
+				}
+				body = append(body, []byte(strings.Join(txt.Txt, ""))...)
 			}
 		default:
 			body = []byte("query type is not supported yet")

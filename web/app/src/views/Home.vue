@@ -12,18 +12,31 @@
               variant="ghost" 
               size="icon" 
               @click="toggleShowAverageResponseTime" 
-              :title="showAverageResponseTime ? 'Show min-max response time' : 'Show average response time'"
+              :title="showAverageResponseTime ? $t('Show min-max response time') : $t('Show average response time')"
             >
               <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
               <Timer v-else class="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" @click="refreshData" title="Refresh data">
+            <Button variant="ghost" size="icon" @click="refreshData" :title="$t('Refresh data')">
               <RefreshCw class="h-5 w-5" />
             </Button>
           </div>
         </div>
         <!-- Announcement Banner (Active Announcements) -->
         <AnnouncementBanner :announcements="activeAnnouncements" />
+        <!-- Global status banner -->
+        <div v-if="uiTheme === 'utd' && !loading && overallStatus !== 'unknown'" :class="['avis-utd', 'mb-4', utdAvisType]" role="status">
+          <span class="avis-utd-icone">
+            <CheckCircle v-if="overallStatus === 'healthy'" class="h-5 w-5" />
+            <AlertCircle v-else class="h-5 w-5" />
+          </span>
+          <p class="avis-utd-texte">{{ overallStatusLabel }}</p>
+        </div>
+        <div v-else-if="!loading && overallStatus !== 'unknown'" :class="['global-status flex items-center gap-3 rounded-lg px-5 py-4 mb-4 text-white font-medium', overallStatusClass]">
+          <CheckCircle v-if="overallStatus === 'healthy'" class="h-6 w-6 flex-shrink-0" />
+          <AlertCircle v-else class="h-6 w-6 flex-shrink-0" />
+          <span class="text-lg">{{ overallStatusLabel }}</span>
+        </div>
         <!-- Search bar -->
         <SearchBar
           @search="handleSearch"
@@ -41,11 +54,11 @@
 
       <div v-else-if="filteredEndpoints.length === 0 && filteredSuites.length === 0" class="text-center py-20">
         <AlertCircle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 class="text-lg font-semibold mb-2">No endpoints or suites found</h3>
+        <h3 class="text-lg font-semibold mb-2">{{ $t('No endpoints or suites found') }}</h3>
         <p class="text-muted-foreground">
           {{ searchQuery || showOnlyFailing || showRecentFailures 
-            ? 'Try adjusting your filters' 
-            : 'No endpoints or suites are configured' }}
+            ? $t('Try adjusting your filters') 
+            : $t('No endpoints or suites are configured') }}
         </p>
       </div>
 
@@ -63,10 +76,16 @@
                 <ChevronUp v-else class="h-5 w-5 text-muted-foreground" />
                 <h2 class="text-xl font-semibold text-foreground">{{ group }}</h2>
               </div>
-              <div class="flex items-center gap-2">
-                <span v-if="calculateUnhealthyCount(items.endpoints) + calculateFailingSuitesCount(items.suites) > 0" 
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-muted-foreground">{{ items.endpoints.length + items.suites.length }} services</span>
+                <span v-if="calculateUnhealthyCount(items.endpoints) + calculateFailingSuitesCount(items.suites) > 0"
                       class="bg-red-600 text-white px-2 py-1 rounded-full text-sm font-medium">
                   {{ calculateUnhealthyCount(items.endpoints) + calculateFailingSuitesCount(items.suites) }}
+                </span>
+                <span v-else-if="calculateDegradedCount(items.endpoints) > 0"
+                      class="bg-yellow-500 text-white px-2 py-1 rounded-full text-sm font-medium"
+                      title="Performances dégradées">
+                  {{ calculateDegradedCount(items.endpoints) }}
                 </span>
                 <CheckCircle v-else class="h-6 w-6 text-green-600" />
               </div>
@@ -91,8 +110,8 @@
               <!-- Endpoints Section -->
               <div v-if="items.endpoints.length > 0">
                 <h3 v-if="items.suites.length > 0" class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Endpoints</h3>
-                <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                  <EndpointCard
+                <div class="divide-y -mx-4 -mb-4">
+                  <ServiceRow
                     v-for="endpoint in items.endpoints"
                     :key="endpoint.key"
                     :endpoint="endpoint"
@@ -125,8 +144,8 @@
           <!-- Endpoints Section -->
           <div v-if="filteredEndpoints.length > 0">
             <h2 v-if="filteredSuites.length > 0" class="text-lg font-semibold text-foreground mb-3">Endpoints</h2>
-            <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              <EndpointCard
+            <div class="border rounded-lg overflow-hidden divide-y bg-card">
+              <ServiceRow
                 v-for="endpoint in paginatedEndpoints"
                 :key="endpoint.key"
                 :endpoint="endpoint"
@@ -171,6 +190,17 @@
         </div>
       </div>
 
+        <!-- Légende : sous la liste des endpoints -->
+        <div v-if="uiTheme === 'utd' && !loading && overallStatus !== 'unknown'" class="flex flex-wrap items-center gap-4 mb-4">
+          <span class="utd-pastille avec-point vert">Opérationnel (moins de 700 ms)</span>
+          <span class="utd-pastille avec-point jaune">Performances dégradées (700 ms à 5 s)</span>
+          <span class="utd-pastille avec-point rouge">Panne (plus de 5 s ou échec)</span>
+        </div>
+        <div v-else-if="!loading && overallStatus !== 'unknown'" class="flex flex-wrap items-center gap-x-5 gap-y-1 mt-6 mb-4 text-sm text-muted-foreground">
+          <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-green-500"></span>Opérationnel</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-yellow-400"></span>Performances dégradées (lenteur, pas de panne)</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-red-500"></span>Panne</span>
+        </div>
       <!-- Past Announcements Section -->
       <div v-if="archivedAnnouncements.length > 0" class="mt-12 pb-8">
         <PastAnnouncements :announcements="archivedAnnouncements" />
@@ -185,13 +215,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import EndpointCard from '@/components/EndpointCard.vue'
+import ServiceRow from '@/components/ServiceRow.vue'
 import SuiteCard from '@/components/SuiteCard.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import PastAnnouncements from '@/components/PastAnnouncements.vue'
+import { uiTheme } from '@/utils/uiTheme'
 
 const props = defineProps({
   announcements: {
@@ -223,7 +254,7 @@ const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-res
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
-const resultPageSize = 50
+const resultPageSize = 90
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -497,6 +528,54 @@ const calculateUnhealthyCount = (endpoints) => {
     return !latestResult.success
   }).length
 }
+
+const latestStatusOf = (item) => {
+  if (!item.results || item.results.length === 0) return 'unknown'
+  const latestResult = item.results[item.results.length - 1]
+  if (!latestResult.success) return 'unhealthy'
+  return latestResult.degraded ? 'degraded' : 'healthy'
+}
+
+const calculateDegradedCount = (endpoints) => {
+  return endpoints.filter(endpoint => latestStatusOf(endpoint) === 'degraded').length
+}
+
+const overallStatus = computed(() => {
+  const statuses = [...endpointStatuses.value, ...(suiteStatuses.value || [])].map(latestStatusOf).filter(s => s !== 'unknown')
+  if (statuses.length === 0) return 'unknown'
+  const unhealthy = statuses.filter(s => s === 'unhealthy').length
+  if (unhealthy === statuses.length) return 'major'
+  if (unhealthy > 0) return 'partial'
+  if (statuses.includes('degraded')) return 'degraded'
+  return 'healthy'
+})
+
+const overallStatusLabel = computed(() => {
+  switch (overallStatus.value) {
+    case 'major': return 'Panne majeure : aucun service ne répond'
+    case 'partial': return 'Panne partielle : certains services sont en panne'
+    case 'degraded': return 'Performances dégradées : certains services sont lents'
+    default: return 'Tous les systèmes sont opérationnels'
+  }
+})
+
+const utdAvisType = computed(() => {
+  switch (overallStatus.value) {
+    case 'major':
+    case 'partial': return 'erreur'
+    case 'degraded': return 'avertissement'
+    default: return 'succes'
+  }
+})
+
+const overallStatusClass = computed(() => {
+  switch (overallStatus.value) {
+    case 'major': return 'bg-red-600'
+    case 'partial': return 'bg-orange-500'
+    case 'degraded': return 'bg-yellow-500'
+    default: return 'bg-green-600'
+  }
+})
 
 const calculateFailingSuitesCount = (suites) => {
   return suites.filter(suite => {

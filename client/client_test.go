@@ -1,23 +1,40 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/netip"
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
+	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/ssh"
 )
 
+func isIgnorableNetworkTestError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errString := err.Error()
+	return strings.Contains(errString, "no such host") ||
+		strings.Contains(errString, "connection reset by peer") ||
+		strings.Contains(errString, "i/o timeout") ||
+		strings.Contains(errString, "server misbehaving")
+}
+
 func TestGetHTTPClient(t *testing.T) {
-	t.Parallel()
 	cfg := &Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
@@ -222,12 +239,113 @@ func TestCanPerformStartTLS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			connected, _, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second, DNSResolver: tt.args.dnsresolver})
+			if !tt.wantErr && isIgnorableNetworkTestError(err) {
+				t.Skipf("skipping due to transient network error: %v", err)
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
 			}
 			if connected != tt.wantConnected {
 				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
+			}
+		})
+	}
+}
+
+func TestCanPerformStartTLSWithIMAP(t *testing.T) {
+	// Borrow the self-signed certificate of an httptest TLS server for the fake IMAP server
+	httpsServer := httptest.NewTLSServer(http.NotFoundHandler())
+	defer httpsServer.Close()
+	tests := []struct {
+		name             string
+		starttlsResponse string
+		wantConnected    bool
+	}{
+		{name: "starttls accepted", starttlsResponse: "a1 OK Begin TLS negotiation now\r\n", wantConnected: true},
+		{name: "starttls rejected", starttlsResponse: "a1 BAD STARTTLS not supported\r\n", wantConnected: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			listener, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer listener.Close()
+			go func() {
+				conn, err := listener.Accept()
+				if err != nil {
+					return
+				}
+				defer conn.Close()
+				conn.Write([]byte("* OK [CAPABILITY IMAP4rev1 STARTTLS] Dovecot ready.\r\n"))
+				if _, err := bufio.NewReader(conn).ReadString('\n'); err != nil {
+					return
+				}
+				conn.Write([]byte(tt.starttlsResponse))
+				if tt.wantConnected {
+					tls.Server(conn, httpsServer.TLS).Handshake()
+				}
+			}()
+			connected, certificate, err := CanPerformStartTLS(listener.Addr().String(), &Config{Insecure: true, Timeout: 5 * time.Second})
+			if connected != tt.wantConnected {
+				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v, err=%v", connected, tt.wantConnected, err)
+			}
+			if tt.wantConnected && certificate == nil {
+				t.Error("expected a certificate")
+			}
+			if !tt.wantConnected && err == nil {
+				t.Error("expected an error")
+			}
+		})
+	}
+}
+
+func TestCanPerformStartTLSWithSilentServer(t *testing.T) {
+	scenarios := []struct {
+		name   string
+		config *Config
+	}{
+		{name: "default-dialer", config: &Config{Timeout: 500 * time.Millisecond}},
+		// The resolver itself is never queried since the address is an IP, but this exercises the custom dialer
+		{name: "custom-dns-resolver", config: &Config{Timeout: 500 * time.Millisecond, DNSResolver: "tcp://127.0.0.1:53"}},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			// A server that accepts the TCP connection but never sends the SMTP greeting
+			listener, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer listener.Close()
+			closed := make(chan struct{})
+			go func() {
+				conn, err := listener.Accept()
+				if err != nil {
+					return
+				}
+				defer conn.Close()
+				// Block until the client gives up and closes the connection
+				_, _ = io.Copy(io.Discard, conn)
+				close(closed)
+			}()
+			done := make(chan error, 1)
+			go func() {
+				_, _, err := CanPerformStartTLS(listener.Addr().String(), scenario.config)
+				done <- err
+			}()
+			select {
+			case err := <-done:
+				if err == nil {
+					t.Error("expected an error, got none")
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("CanPerformStartTLS did not respect the client timeout")
+			}
+			select {
+			case <-closed:
+			case <-time.After(5 * time.Second):
+				t.Error("CanPerformStartTLS did not close the connection")
 			}
 		})
 	}
@@ -291,6 +409,9 @@ func TestCanPerformTLS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			connected, _, _, err := CanPerformTLS(tt.args.address, "", &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			if !tt.wantErr && isIgnorableNetworkTestError(err) {
+				t.Skipf("skipping due to transient network error: %v", err)
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
@@ -318,7 +439,6 @@ func TestCanCreateConnection(t *testing.T) {
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.
 func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
-	t.Parallel()
 	defer InjectHTTPClient(nil)
 	oAuth2Config := &OAuth2Config{
 		ClientID:     "00000000-0000-0000-0000-000000000000",
@@ -382,6 +502,37 @@ func TestQueryWebSocket(t *testing.T) {
 	_, _, err = QueryWebSocket("ws://example.org", "body", nil, &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the target not being websocket-friendly")
+	}
+}
+
+func TestQueryWebSocketWithServerThatNeverReplies(t *testing.T) {
+	t.Parallel()
+	upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer server.Close()
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := QueryWebSocket("ws"+strings.TrimPrefix(server.URL, "http"), "body", nil, &Config{Timeout: 500 * time.Millisecond})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err == nil || !strings.Contains(err.Error(), "error reading websocket message") || !strings.Contains(err.Error(), "i/o timeout") {
+			t.Errorf("expected a read timeout error, got %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("QueryWebSocket did not return after the configured timeout elapsed")
 	}
 }
 
@@ -510,6 +661,16 @@ func TestQueryDNS(t *testing.T) {
 			expectedBody:    "one.one.one.one.",
 		},
 		{
+			name: "test Config with type TXT",
+			inputDNS: dns.Config{
+				QueryType: "TXT",
+				QueryName: "example.com.",
+			},
+			inputURL:        "1.1.1.1",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "*v=spf1*",
+		},
+		{
 			name: "test Config with fake type and retrieve error",
 			inputDNS: dns.Config{
 				QueryType: "B",
@@ -528,8 +689,8 @@ func TestQueryDNS(t *testing.T) {
 			if dnsRCode != scenario.expectedDNSCode {
 				t.Errorf("expected DNSRCode to be %s, got %s", scenario.expectedDNSCode, dnsRCode)
 			}
-			if scenario.inputDNS.QueryType == "NS" {
-				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
+			if scenario.inputDNS.QueryType == "NS" || scenario.inputDNS.QueryType == "TXT" {
+				// Some record types can have multiple valid answers, so wildcard matching is used in those scenarios
 				if !pattern.Match(scenario.expectedBody, string(body)) {
 					t.Errorf("got %s, expected result %s,", string(body), scenario.expectedBody)
 				}
@@ -556,6 +717,83 @@ func TestQueryDNS(t *testing.T) {
 			}
 		})
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestCanCreateSSHConnection(t *testing.T) {
+	t.Parallel()
+	const username, password = "user", "secret"
+	scenarios := []struct {
+		name          string
+		serverConfig  *ssh.ServerConfig
+		password      string
+		expectSuccess bool
+	}{
+		{
+			name: "password",
+			serverConfig: &ssh.ServerConfig{
+				PasswordCallback: func(conn ssh.ConnMetadata, pw []byte) (*ssh.Permissions, error) {
+					if conn.User() == username && string(pw) == password {
+						return nil, nil
+					}
+					return nil, errors.New("invalid credentials")
+				},
+			},
+			password:      password,
+			expectSuccess: true,
+		},
+		{
+			name: "keyboard-interactive-only",
+			serverConfig: &ssh.ServerConfig{
+				KeyboardInteractiveCallback: func(conn ssh.ConnMetadata, challenge ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+					answers, err := challenge("", "", []string{"Password: "}, []bool{false})
+					if err != nil {
+						return nil, err
+					}
+					if conn.User() == username && len(answers) == 1 && answers[0] == password {
+						return nil, nil
+					}
+					return nil, errors.New("invalid credentials")
+				},
+			},
+			password:      password,
+			expectSuccess: true,
+		},
+		{
+			name: "keyboard-interactive-only-wrong-password",
+			serverConfig: &ssh.ServerConfig{
+				KeyboardInteractiveCallback: func(conn ssh.ConnMetadata, challenge ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+					answers, err := challenge("", "", []string{"Password: "}, []bool{false})
+					if err != nil {
+						return nil, err
+					}
+					if conn.User() == username && len(answers) == 1 && answers[0] == password {
+						return nil, nil
+					}
+					return nil, errors.New("invalid credentials")
+				},
+			},
+			password:      "wrong",
+			expectSuccess: false,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			address := test.StartSSHServer(t, scenario.serverConfig)
+			connected, cli, err := CanCreateSSHConnection(address, username, scenario.password, "", &Config{Timeout: 5 * time.Second})
+			if cli != nil {
+				defer cli.Close()
+			}
+			if connected != scenario.expectSuccess {
+				t.Errorf("expected connected=%v, got %v (err=%v)", scenario.expectSuccess, connected, err)
+			}
+			if scenario.expectSuccess && err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+			if !scenario.expectSuccess && err == nil {
+				t.Error("expected an error, got nil")
+			}
+		})
 	}
 }
 

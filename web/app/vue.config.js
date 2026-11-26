@@ -6,6 +6,13 @@ module.exports = {
 	filenameHashing: false,
 	productionSourceMap: false,
 	outputDir: '../static',
+	// Les balises utd-* sont des composants web (thème UTD), pas des composants Vue
+	chainWebpack: (config) => {
+		config.module.rule('vue').use('vue-loader').tap((options) => ({
+			...options,
+			compilerOptions: { ...(options.compilerOptions || {}), isCustomElement: (tag) => tag.startsWith('utd-') }
+		}))
+	},
 	publicPath: '/',
 	devServer: {
 		port: 8081,

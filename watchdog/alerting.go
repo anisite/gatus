@@ -17,7 +17,8 @@ func HandleAlerting(ep *endpoint.Endpoint, result *endpoint.Result, alertingConf
 	if alertingConfig == nil {
 		return
 	}
-	if result.Success {
+	// A degraded result is not downtime, but it triggers alerts like a failure would
+	if result.Success && !result.Degraded() {
 		handleAlertsToResolve(ep, result, alertingConfig)
 	} else {
 		handleAlertsToTrigger(ep, result, alertingConfig)

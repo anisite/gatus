@@ -8,7 +8,10 @@
     <!-- Main App Container -->
     <div v-else-if="!config || !config.oidc || config.authenticated" class="relative">
       <!-- Header -->
-      <header class="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <header v-if="uiTheme === 'utd'" class="utd-entete">
+        <utd-piv-entete :titre-site1="header" url-titre-site="/" alt-logo="Signature du gouvernement du Québec."></utd-piv-entete>
+      </header>
+      <header v-else class="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div class="container mx-auto px-4 py-4 max-w-7xl">
           <div class="flex items-center justify-between">
             <!-- Logo and Title -->
@@ -97,10 +100,12 @@
 
       <!-- Footer -->
       <footer class="border-t mt-auto">
+        <utd-piv-pied-page v-if="uiTheme === 'utd'"></utd-piv-pied-page>
         <div class="container mx-auto px-4 py-6 max-w-7xl">
           <div class="flex flex-col items-center gap-4">
             <div class="text-sm text-muted-foreground text-center">
               Powered by <a href="https://gatus.io" target="_blank" class="font-medium text-emerald-800 hover:text-emerald-600">Gatus</a>
+              <span v-if="buildDate"> · Build {{ buildDate }}</span>
             </div>
             <Social />
           </div>
@@ -162,6 +167,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Social from './components/Social.vue'
 import Tooltip from './components/Tooltip.vue'
 import Loading from './components/Loading.vue'
+import { uiTheme } from './utils/uiTheme'
 
 const route = useRoute()
 
@@ -178,6 +184,13 @@ let configInterval = null
 // Computed properties
 const logo = computed(() => {
   return window.config && window.config.logo && window.config.logo !== '{{ .UI.Logo }}' ? window.config.logo : ""
+})
+
+const buildDate = computed(() => {
+  const raw = process.env.VUE_APP_BUILD_DATE
+  if (!raw) return ''
+  const date = new Date(raw)
+  return isNaN(date) ? raw : date.toLocaleString('fr-CA', { dateStyle: 'medium', timeStyle: 'short' })
 })
 
 const header = computed(() => {

@@ -17,19 +17,30 @@
           result.success ? 'bg-green-500' : 'bg-red-500'
         ]"></span>
         <span class="text-xs font-semibold">
-          {{ result.success ? 'Suite Passed' : 'Suite Failed' }}
+          {{ result.success ? $t('Suite Passed') : $t('Suite Failed') }}
+        </span>
+      </div>
+
+      <!-- Status (for endpoint results) -->
+      <div v-if="!isSuiteResult" class="flex items-center gap-2">
+        <span :class="[
+          'inline-block w-2 h-2 rounded-full',
+          result.degraded ? 'bg-yellow-500' : (result.success ? 'bg-green-500' : 'bg-red-500')
+        ]"></span>
+        <span class="text-xs font-semibold">
+          {{ result.degraded ? 'Performances dégradées' : (result.success ? 'Opérationnel' : 'Panne') }}
         </span>
       </div>
 
       <!-- Timestamp -->
       <div>
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{{ $t('Timestamp') }}</div>
         <div class="font-mono text-xs">{{ prettifyTimestamp(result.timestamp) }}</div>
       </div>
       
       <!-- Suite Info (for suite results) -->
       <div v-if="isSuiteResult && result.endpointResults">
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Endpoints</div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{{ $t('Endpoints') }}</div>
         <div class="font-mono text-xs">
           <span :class="successCount === endpointCount ? 'text-green-500' : 'text-yellow-500'">
             {{ successCount }}/{{ endpointCount }} passed
@@ -66,15 +77,15 @@
       
       <!-- Conditions (for endpoint results) -->
       <div v-if="!isSuiteResult && result.conditionResults && result.conditionResults.length">
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conditions</div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{{ $t('Conditions') }}</div>
         <div class="font-mono text-xs space-y-0.5">
           <div 
             v-for="(conditionResult, index) in result.conditionResults" 
             :key="index"
             class="flex items-start gap-1"
           >
-            <span :class="conditionResult.success ? 'text-green-500' : 'text-red-500'">
-              {{ conditionResult.success ? '✓' : '✗' }}
+            <span :class="conditionResult.success ? 'text-green-500' : (result.degraded ? 'text-yellow-500' : 'text-red-500')">
+              {{ conditionResult.success ? '✓' : (result.degraded ? '!' : '✗') }}
             </span>
             <span class="break-all">{{ conditionResult.condition }}</span>
           </div>
@@ -83,7 +94,7 @@
       
       <!-- Errors -->
       <div v-if="result.errors && result.errors.length">
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Errors</div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{{ $t('Errors') }}</div>
         <div class="font-mono text-xs space-y-0.5">
           <div v-for="(error, index) in result.errors" :key="index" class="text-red-500">
             • {{ error }}

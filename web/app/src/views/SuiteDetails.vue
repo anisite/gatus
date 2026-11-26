@@ -5,12 +5,12 @@
       <div class="mb-6">
         <Button variant="ghost" size="sm" @click="goBack" class="mb-4">
           <ArrowLeft class="h-4 w-4 mr-2" />
-          Back to Dashboard
+          {{ $t('Back to Dashboard') }}
         </Button>
         
         <div class="flex items-start justify-between">
           <div>
-            <h1 class="text-3xl font-bold tracking-tight">{{ suite?.name || 'Loading...' }}</h1>
+            <h1 class="text-3xl font-bold tracking-tight">{{ suite?.name || $t('Loading...') }}</h1>
             <p class="text-muted-foreground mt-2">
               <span v-if="suite?.group">{{ suite.group }} • </span>
               <span v-if="latestResult">
@@ -20,7 +20,7 @@
           </div>
           <div class="flex items-center gap-2">
             <StatusBadge v-if="latestResult" :status="latestResult.success ? 'healthy' : 'unhealthy'" />
-            <Button variant="ghost" size="icon" @click="refreshData" title="Refresh">
+            <Button variant="ghost" size="icon" @click="refreshData" :title="$t('Refresh')">
               <RefreshCw class="h-5 w-5" />
             </Button>
           </div>
@@ -33,26 +33,26 @@
 
       <div v-else-if="!suite" class="text-center py-20">
         <AlertCircle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 class="text-lg font-semibold mb-2">Suite not found</h3>
-        <p class="text-muted-foreground">The requested suite could not be found.</p>
+        <h3 class="text-lg font-semibold mb-2">{{ $t('Suite not found') }}</h3>
+        <p class="text-muted-foreground">{{ $t('The requested suite could not be found.') }}</p>
       </div>
 
       <div v-else class="space-y-6">
         <!-- Latest Execution -->
         <Card v-if="latestResult">
           <CardHeader>
-            <CardTitle>{{ selectedResult?.timestamp === sortedResults[0]?.timestamp ? 'Latest Execution' : `Execution at ${formatTimestamp(selectedResult.timestamp)}` }}</CardTitle>
+            <CardTitle>{{ selectedResult?.timestamp === sortedResults[0]?.timestamp ? $t('Latest Execution') : $t('Execution at {time}', { time: formatTimestamp(selectedResult.timestamp) }) }}</CardTitle>
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
               <!-- Execution stats -->
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p class="text-sm text-muted-foreground">Status</p>
-                  <p class="text-lg font-medium">{{ latestResult.success ? 'Success' : 'Failed' }}</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('Status') }}</p>
+                  <p class="text-lg font-medium">{{ latestResult.success ? $t('Success') : $t('Failed') }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Duration</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('Duration') }}</p>
                   <p class="text-lg font-medium">{{ formatDuration(latestResult.duration) }}</p>
                 </div>
                 <div>
@@ -60,14 +60,14 @@
                   <p class="text-lg font-medium">{{ latestResult.endpointResults?.length || 0 }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Success Rate</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('Success Rate') }}</p>
                   <p class="text-lg font-medium">{{ calculateSuccessRate(latestResult) }}%</p>
                 </div>
               </div>
 
               <!-- Enhanced Execution Flow -->
               <div class="mt-6">
-                <h3 class="text-lg font-semibold mb-4">Execution Flow</h3>
+                <h3 class="text-lg font-semibold mb-4">{{ $t('Execution Flow') }}</h3>
                 <SequentialFlowDiagram
                   :flow-steps="flowSteps"
                   :progress-percentage="executionProgress"
@@ -80,7 +80,7 @@
 
               <!-- Errors -->
               <div v-if="latestResult.errors && latestResult.errors.length > 0" class="mt-6">
-                <h3 class="text-lg font-semibold mb-3 text-red-500">Suite Errors</h3>
+                <h3 class="text-lg font-semibold mb-3 text-red-500">{{ $t('Suite Errors') }}</h3>
                 <div class="space-y-2">
                   <div
                     v-for="(error, index) in latestResult.errors"
@@ -98,7 +98,7 @@
         <!-- Execution History -->
         <Card>
           <CardHeader>
-            <CardTitle>Execution History</CardTitle>
+            <CardTitle>{{ $t('Execution History') }}</CardTitle>
           </CardHeader>
           <CardContent>
             <div v-if="sortedResults.length > 0" class="space-y-2">
@@ -122,7 +122,7 @@
               </div>
             </div>
             <div v-else class="text-center py-8 text-muted-foreground">
-              No execution history available
+              {{ $t('No execution history available') }}
             </div>
           </CardContent>
         </Card>

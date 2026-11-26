@@ -18,6 +18,7 @@ import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
 import { generatePrettyTimeDifference } from '@/utils/time'
 import Loading from './Loading.vue'
+import { t, locale } from '@/i18n'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, TimeScale, annotationPlugin)
 
@@ -163,7 +164,7 @@ const chartOptions = computed(() => {
           title: (tooltipItems) => {
             if (tooltipItems.length > 0) {
               const date = new Date(tooltipItems[0].parsed.x)
-              return date.toLocaleString()
+              return date.toLocaleString(locale)
             }
             return ''
           },
@@ -207,7 +208,7 @@ const chartOptions = computed(() => {
             },
             label: {
               display: () => hoveredEventIndex.value === index,
-              content: [event.isOngoing ? `Status: ONGOING` : `Status: RESOLVED`, `Unhealthy for ${event.duration}`, `Started at ${new Date(event.timestamp).toLocaleString()}`],
+              content: [event.isOngoing ? t('Status: ONGOING') : t('Status: RESOLVED'), t('Unhealthy for {duration}', { duration: event.duration }), t('Started at {time}', { time: new Date(event.timestamp).toLocaleString(locale) })],
               backgroundColor: getEventColor(),
               color: '#ffffff',
               font: {
@@ -268,11 +269,11 @@ const fetchData = async () => {
       timestamps.value = data.timestamps || []
       values.value = data.values || []
     } else {
-      error.value = 'Failed to load chart data'
+      error.value = t('Failed to load chart data')
       console.error('[ResponseTimeChart] Error:', await response.text())
     }
   } catch (err) {
-    error.value = 'Failed to load chart data'
+    error.value = t('Failed to load chart data')
     console.error('[ResponseTimeChart] Error:', err)
   } finally {
     loading.value = false

@@ -27,9 +27,10 @@ const (
 )
 
 const (
-	HealthStatusUp      = "up"
-	HealthStatusDown    = "down"
-	HealthStatusUnknown = "?"
+	HealthStatusUp       = "up"
+	HealthStatusDown     = "down"
+	HealthStatusDegraded = "degraded"
+	HealthStatusUnknown  = "?"
 )
 
 var (
@@ -132,7 +133,9 @@ func HealthBadge(c *fiber.Ctx) error {
 	}
 	healthStatus := HealthStatusUnknown
 	if len(status.Results) > 0 {
-		if status.Results[0].Success {
+		if status.Results[0].Degraded() {
+			healthStatus = HealthStatusDegraded
+		} else if status.Results[0].Success {
 			healthStatus = HealthStatusUp
 		} else {
 			healthStatus = HealthStatusDown
@@ -161,7 +164,9 @@ func HealthBadgeShields(c *fiber.Ctx) error {
 	}
 	healthStatus := HealthStatusUnknown
 	if len(status.Results) > 0 {
-		if status.Results[0].Success {
+		if status.Results[0].Degraded() {
+			healthStatus = HealthStatusDegraded
+		} else if status.Results[0].Success {
 			healthStatus = HealthStatusUp
 		} else {
 			healthStatus = HealthStatusDown
@@ -320,6 +325,8 @@ func generateHealthBadgeSVG(healthStatus string) []byte {
 		valueWidth = 28
 	case HealthStatusDown:
 		valueWidth = 44
+	case HealthStatusDegraded:
+		valueWidth = 64
 	case HealthStatusUnknown:
 		valueWidth = 10
 	default:
@@ -378,6 +385,8 @@ func getBadgeColorFromHealth(healthStatus string) string {
 		return badgeColorHexAwesome
 	} else if healthStatus == HealthStatusDown {
 		return badgeColorHexVeryBad
+	} else if healthStatus == HealthStatusDegraded {
+		return "#e6b800"
 	}
 	return badgeColorHexPassable
 }
@@ -388,5 +397,6 @@ func getBadgeShieldsColorFromHealth(healthStatus string) string {
 	} else if healthStatus == HealthStatusDown {
 		return "red"
 	}
+	// degraded and unknown both map to yellow
 	return "yellow"
 }
